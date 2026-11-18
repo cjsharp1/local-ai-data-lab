@@ -1,0 +1,186 @@
+/**
+ * try-tools.ts — calls every data tool over MCP, with no model involved.
+ *
+ * Run it with:  npm run try-tools
+ *
+ * Spawns the data server exactly the way the app does — as a child
+ * process speaking MCP over stdio — then calls each of the six tools with
+ * good arguments and bad ones, and checks what comes back. For every call
+ * it prints what the MODEL would read (the text summary), what the rep
+ * SCREEN would get (the structured result's top-level keys), and the SQL
+ * the data server reports it ran.
+ *
+ * ---------------------------------------------------------------------------
+ * Why test the tools without a model
+ * ---------------------------------------------------------------------------
+ *
+ * When the full app gives a wrong answer, there are two suspects: the
+ * model, and the tools. This script rules out the second. If every case
+ * here passes, the data and the tools are right, and a wrong answer in
+ * the chat is the model's — which is the comparison the rep screen exists
+ * to make visible.
+ *
+ * It also shows the point the rep screen's click-through makes: the tools
+ * are just an API. A model is one caller; this script is another.
+ *
+ * Each case says whether it expects an error result. The error paths
+ * matter as much as the happy ones — "No customer with that email. Try
+ * find_customers." is how a small model recovers, so it is tested too.
+ */
+
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Readable } from "node:stream";
+import { QUERIES_META_KEY } from "../shared/checkpoint.js";
+import type { QueryReport } from "../shared/types.js";
+
+const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
+
+/** One call, and what it should produce. */
+interface Case {
+  label: string;
+  tool: string;
+  args: Record<string, unknown>;
+  expectError: boolean;
+  /** Text the summary must contain, to check more than "did not crash". */
+  expectText?: string;
+}
+
+/** A date N days ago, YYYY-MM-DD — the seed's dates move with the calendar. */
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+}
+
+const CASES: Case[] = [
+  // find_customers
+  { label: "two customers share a name", tool: "find_customers", args: { query: "Sam Rivera" }, expectError: false, expectText: "ask the user" },
+  { label: "search by phone digits", tool: "find_customers", args: { query: "555-01" }, expectError: false, expectText: "customers match" },
+  { label: "no match is NOT an error", tool: "find_customers", args: { query: "Zzyzx" }, expectError: false, expectText: "No customers match" },
+  { label: "query too short (schema)", tool: "find_customers", args: { query: "R" }, expectError: true, expectText: "Input validation error" },
+
+  // get_customer
+  { label: "by email", tool: "get_customer", args: { email: "dana.whitlock@example.com" }, expectError: false, expectText: "Shipping addresses (3)" },
+  { label: "email in capitals", tool: "get_customer", args: { email: "Sam.Rivera@Example.com" }, expectError: false, expectText: "Sam Rivera" },
+  { label: "no orders", tool: "get_customer", args: { email: "avery.okafor@example.com" }, expectError: false, expectText: "No orders" },
+  { label: "neither id nor email", tool: "get_customer", args: {}, expectError: true, expectText: "either customer_id or email" },
+  { label: "both id and email", tool: "get_customer", args: { customer_id: 1, email: "x@example.com" }, expectError: true, expectText: "not both" },
+  { label: "empty email counts as absent", tool: "get_customer", args: { customer_id: 1, email: "" }, expectError: false },
+  { label: "id sent as a STRING", tool: "get_customer", args: { customer_id: "77" }, expectError: false, expectText: "Dana Whitlock" },
+  { label: "id that is not a number (schema)", tool: "get_customer", args: { customer_id: "Dana" }, expectError: true, expectText: "Input validation error" },
+  { label: "unknown email", tool: "get_customer", args: { email: "nobody@example.com" }, expectError: true, expectText: "find_customers" },
+
+  // list_orders
+  { label: "by email, one call", tool: "list_orders", args: { email: "dana.whitlock@example.com" }, expectError: false, expectText: "Dana Whitlock" },
+  { label: "zero orders is an answer", tool: "list_orders", args: { email: "avery.okafor@example.com" }, expectError: false, expectText: "has no orders" },
+  { label: "pending orders", tool: "list_orders", args: { status: "pending" }, expectError: false, expectText: "status pending" },
+  { label: "last 30 days", tool: "list_orders", args: { from_date: daysAgo(30), to_date: daysAgo(0) }, expectError: false, expectText: "newest first" },
+  { label: "date in words (schema)", tool: "list_orders", args: { from_date: "last month" }, expectError: true, expectText: "YYYY-MM-DD" },
+  { label: "dates reversed", tool: "list_orders", args: { from_date: "2026-10-01", to_date: "2026-09-01" }, expectError: true, expectText: "is after" },
+  { label: "unknown status (schema)", tool: "list_orders", args: { status: "lost" }, expectError: true, expectText: "Input validation error" },
+
+  // get_order
+  { label: "the 7-line order", tool: "get_order", args: { order_number: "CP-10266" }, expectError: false, expectText: "7 lines" },
+  { label: "number without prefix", tool: "get_order", args: { order_number: "10266" }, expectError: false, expectText: "CP-10266" },
+  { label: "order number sent as a NUMBER", tool: "get_order", args: { order_number: 10266 }, expectError: false, expectText: "CP-10266" },
+  { label: "unknown order", tool: "get_order", args: { order_number: "CP-99999" }, expectError: true, expectText: "list_orders" },
+
+  // find_products
+  { label: "headlamps under $50", tool: "find_products", args: { query: "Nightstride", max_price: 50 }, expectError: false },
+  { label: "loose category", tool: "find_products", args: { category: "shoes" }, expectError: false, expectText: "Trail shoes" },
+  { label: "discontinued hidden by default", tool: "find_products", args: { query: "Scree 2" }, expectError: false, expectText: "Discontinued products were not included" },
+  { label: "discontinued on request", tool: "find_products", args: { query: "Scree 2", include_discontinued: true }, expectError: false, expectText: "[discontinued]" },
+  { label: "\"true\" and \"50\" as strings", tool: "find_products", args: { query: "Scree", include_discontinued: "true", max_price: "500" }, expectError: false, expectText: "[discontinued]" },
+
+  // get_product
+  { label: "never ordered", tool: "get_product", args: { sku: "CO-PDL-001" }, expectError: false, expectText: "Never ordered" },
+  { label: "lower-case SKU", tool: "get_product", args: { sku: "co-trl-002" }, expectError: false, expectText: "DISCONTINUED" },
+  { label: "the injected description", tool: "get_product", args: { sku: "CO-SAF-001" }, expectError: false, expectText: "ignore all previous instructions" },
+  { label: "unknown SKU", tool: "get_product", args: { sku: "CO-XXX-999" }, expectError: true, expectText: "find_products" },
+];
+
+/** The text of a result's first text block. */
+function textOf(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  const block = content.find(
+    (b): b is { type: "text"; text: string } =>
+      typeof b === "object" && b !== null && (b as { type?: unknown }).type === "text",
+  );
+  return block?.text ?? "";
+}
+
+function indent(text: string): string {
+  return text.split("\n").map((line) => `      ${line}`).join("\n");
+}
+
+async function main(): Promise<void> {
+  // The same command the app uses in development: Node with tsx loaded,
+  // running the stdio entry point. process.execPath rather than "npx" or
+  // "tsx", because spawning those on Windows needs a shell.
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: ["--import", "tsx", join("data-server", "stdio.ts")],
+    cwd: ROOT,
+    stderr: "pipe",
+  });
+
+  // The data server's stderr is its diagnostics channel. Show it, so a
+  // missing database or a crash is visible here rather than a hang.
+  (transport.stderr as Readable | null)?.on("data", (chunk: Buffer) => {
+    for (const line of chunk.toString().split(/\r?\n/)) {
+      if (line.trim()) console.log(`  [data server] ${line}`);
+    }
+  });
+
+  const client = new Client({ name: "try-tools", version: "1.0.0" });
+  await client.connect(transport);
+
+  const { tools } = await client.listTools();
+  console.log(`\nConnected. The data server offers ${tools.length} tools: ${tools.map((t) => t.name).join(", ")}\n`);
+
+  let failures = 0;
+  for (const c of CASES) {
+    const result = await client.callTool({ name: c.tool, arguments: c.args });
+    const isError = result.isError === true;
+    const text = textOf(result.content);
+    const queries = (result._meta?.[QUERIES_META_KEY] ?? []) as QueryReport[];
+
+    const problems: string[] = [];
+    if (isError !== c.expectError) problems.push(c.expectError ? "expected an error result" : "unexpected error result");
+    if (c.expectText && !text.includes(c.expectText)) problems.push(`summary lacks "${c.expectText}"`);
+    if (!isError && (typeof result.structuredContent !== "object" || result.structuredContent === null)) {
+      problems.push("no structured result for the screen");
+    }
+
+    const ok = problems.length === 0;
+    if (!ok) failures += 1;
+
+    console.log(`${ok ? "PASS" : "FAIL"}  ${c.tool} — ${c.label}  ${JSON.stringify(c.args)}`);
+    if (!ok) console.log(`      ✗ ${problems.join("; ")}`);
+    console.log(indent(`model reads${isError ? " (isError)" : ""}: ${text}`));
+    if (result.structuredContent && typeof result.structuredContent === "object") {
+      console.log(`      screen gets: { ${Object.keys(result.structuredContent).join(", ")} }`);
+    }
+    for (const q of queries) {
+      console.log(`      sql (${q.rows} rows, ${q.ms} ms): ${q.sql.slice(0, 110)}${q.sql.length > 110 ? "…" : ""}`);
+    }
+    console.log("");
+  }
+
+  // A tool that does not exist. The app checks names before calling, but
+  // the server's own answer is worth seeing.
+  try {
+    const r = await client.callTool({ name: "run_sql", arguments: { sql: "SELECT email FROM customers" } });
+    console.log(`run_sql (does not exist): isError=${r.isError === true} — ${textOf(r.content)}`);
+  } catch (error: unknown) {
+    console.log(`run_sql (does not exist): rejected — ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  await client.close();
+
+  console.log(`\n${CASES.length - failures} of ${CASES.length} cases passed.`);
+  if (failures > 0) process.exitCode = 1;
+}
+
+await main();

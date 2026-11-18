@@ -57,6 +57,13 @@ default anyway.
 | Warning | Prints `ExperimentalWarning: SQLite is an experimental feature…` **to stderr**. Harmless for the stdio server (stdout is the protocol); explain it in `db.ts`. |
 | Error class | Writes fail with a plain `Error` carrying `code` — match on `code`, not message text. |
 
+**Found in Phase 3 — numbered parameters do not bind positionally.**
+SQLite's `?1`, `?2` placeholders are treated by node:sqlite as *named*
+parameters: `prepare('select ?1').all(5)` throws "column index out of
+range". Use `:name` placeholders bound from an object
+(`all({ name: 5 })`), which work and read better in the log. The data
+server's `QueryRunner` accepts either positional values or one object.
+
 `engines`: `"node": ">=24"`. `node:sqlite` has been unflagged with
 `readOnly` since before 24.0, so any 24.x works. Note: 24.4.1 predates
 Node 24's LTS promotion; upgrading within 24 is recommended but not
@@ -85,6 +92,27 @@ required.
 | Ollama's own network use | Auto-updates on Windows/macOS; pulls models from the internet. "We don't see your prompts or data when you run locally." | Docs — supports the §1 wording "Ollama itself is a separate program" |
 | Docs location | API docs are moving to docs.ollama.com/api. | Docs |
 
+**Found in Phase 3 — clients send near-miss types.** MCP Inspector's CLI
+(`--tool-arg order_number=10266`) sends the *number* 10266 for a string
+field, and small models routinely send `"52"` for an integer. Zod
+`z.preprocess` fixes this without changing the advertised schema:
+`z.toJSONSchema` reports the inner schema (`"type": "string"`) in both
+`input` and `output` modes, confirmed against the live `tools/list`. The
+data server wraps ids, limits, prices, booleans, order numbers and SKUs
+in small "lenient" helpers (`data-server/tools/common.ts`).
+
+**MCP SDK, confirmed in Phase 3:**
+- Bad arguments come back as an `isError` result with text
+  "Input validation error: Invalid arguments for tool …" — never reaching
+  the handler.
+- A result that fails its `outputSchema` also becomes an `isError`
+  result, so a drifting tool fails loudly.
+- An unknown tool name is rejected by the client with "Tool … not found".
+- `outputSchema` is advertised in `tools/list`; `structuredContent` and
+  custom `_meta` keys arrive intact over both stdio and Streamable HTTP.
+- `StdioClientTransport` is exported from `@modelcontextprotocol/client/stdio`,
+  not the package root.
+
 ---
 
 ## Corrections made to PLAN.md
@@ -97,3 +125,6 @@ required.
   outside this repo's control.
 - §6.2: default context is 4096 on most laptops — setting `num_ctx`
   explicitly is required, not optional.
+- §4, §5.3 (Phase 3): added `shared/checkpoint.ts` and
+  `data-server/tools/common.ts`; empty searches are results, not errors;
+  lenient argument types.

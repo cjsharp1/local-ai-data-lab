@@ -196,11 +196,14 @@ export type ReplyKind = "answer" | "clarify" | "refused" | "blocked" | "unfinish
  * protocol revision, and `_meta` arrives identically over stdio and HTTP.
  */
 export interface QueryReport {
-  /** The statement, with `?` placeholders — never values spliced in. */
+  /** The statement, with placeholders — never values spliced in. */
   sql: string;
 
-  /** The values bound to the placeholders, in order. */
-  params: Array<string | number | null>;
+  /**
+   * The values bound to the placeholders: a list, in order, for `?`
+   * placeholders; an object keyed by name for `:name` placeholders.
+   */
+  params: Array<string | number | null> | Record<string, string | number | null>;
 
   /** How many rows came back. */
   rows: number;

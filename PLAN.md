@@ -134,8 +134,10 @@ local-ai-data-lab/
 ├── tsconfig.client.json    browser half; "types": []
 │
 ├── shared/
-│   └── types.ts            wire contract: LogEvent, StreamEvent, ScreenEvent,
-│                           GuardrailSettings
+│   ├── types.ts            wire contract: LogEvent, StreamEvent, ScreenEvent,
+│   │                       GuardrailSettings, QueryReport
+│   └── checkpoint.ts       the six tools' structured result shapes, shared by
+│                           data-server (Zod schemas typed against them) and UI
 │
 ├── data/
 │   ├── schema.sql          committed, commented DDL — the teaching copy
@@ -166,6 +168,7 @@ local-ai-data-lab/
 │   │                       cwd; query() reports SQL + timing
 │   └── tools/
 │       ├── types.ts        imports nothing — bottom of the graph
+│       ├── common.ts       shared schemas, row mapping, lenient args, money
 │       ├── registry.ts
 │       └── definitions/    one file per tool (§5.3)
 │
@@ -327,11 +330,19 @@ Rules:
   sees, and small models handle `anyOf` badly. `get_customer` with
   neither or both returns `isError` saying which to send.
 - **Errors are results, not exceptions.** Unknown email, bad order
-  number, no matches, arguments that fail the Zod schema: return
-  `isError` with a message the model can act on ("No customer with that
-  email. Try find_customers."). That is how a small model recovers. The
-  app does not validate arguments a second time; it relays the server's
-  verdict.
+  number, arguments that fail the Zod schema: return `isError` with a
+  message the model can act on ("No customer with that email. Try
+  find_customers."). That is how a small model recovers. The app does not
+  validate arguments a second time; it relays the server's verdict.
+- **An empty search is an answer, not an error.** `find_customers` with no
+  match, or `list_orders` for a customer with no orders, returns a normal
+  result ("Avery Okafor has no orders."). Only a lookup by an exact key
+  that misses is an error. This matters for the answer gate, which needs
+  a *successful* lookup behind a correct "none" answer.
+- **Lenient argument types.** "52" is accepted for 52, 10266 for "10266",
+  "true" for true — via `z.preprocess`, which leaves the advertised JSON
+  Schema unchanged. Small models and some clients send near-miss types;
+  rejecting them costs a retry a small model may not manage.
 - **Results are capped for the model, not for the screen.** The text
   summary the model reads stays short to fit a small context window;
   the structured result can carry the full table for the screen. The
