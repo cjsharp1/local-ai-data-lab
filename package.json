@@ -1,0 +1,50 @@
+{
+  "name": "local-ai-data-lab",
+  "version": "1.0.0",
+  "description": "A teaching app for local, locked-down AI over private data: a small model running on your machine through Ollama, reaching a SQLite customer database only through read-only MCP tools, with a live activity log and a rep screen. No API key, no hosted model, no training.",
+  "main": "server/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server/index.ts",
+    "build": "tsc && tsc -p tsconfig.client.json && tsx scripts/copy-data.ts",
+    "build:client": "tsc -p tsconfig.client.json",
+    "watch:client": "tsc -p tsconfig.client.json --watch",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "audit-comments": "tsx scripts/audit-comments.ts",
+    "check-env": "tsx scripts/check-env.ts",
+    "seed": "tsx scripts/seed.ts",
+    "data-server:http": "tsx data-server/http.ts",
+    "try-tools": "tsx scripts/try-tools.ts",
+    "try-model": "tsx scripts/try-model.ts",
+    "ask": "tsx scripts/ask.ts",
+    "eval": "tsx scripts/eval.ts"
+  },
+  "keywords": [
+    "ollama",
+    "local-llm",
+    "mcp",
+    "model-context-protocol",
+    "sqlite",
+    "guardrails",
+    "learning"
+  ],
+  "author": "Chris Sharp",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/node": "^2.1.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
