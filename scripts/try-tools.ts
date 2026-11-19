@@ -4,7 +4,7 @@
  * Run it with:  npm run try-tools
  *
  * Spawns the data server exactly the way the app does — as a child
- * process speaking MCP over stdio — then calls each of the six tools with
+ * process speaking MCP over stdio — then calls each of the eight tools with
  * good arguments and bad ones, and checks what comes back. For every call
  * it prints what the MODEL would read (the text summary), what the rep
  * SCREEN would get (the structured result's top-level keys), and the SQL

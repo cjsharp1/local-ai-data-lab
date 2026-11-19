@@ -75,7 +75,7 @@ export function appendLog(event: LogEvent): void {
     parts.push(el("div", { class: "log-because", text: `because ${event.because}` }));
   }
   if (event.detail !== undefined) {
-    // Built on first open, not up front: a model request with six tool
+    // Built on first open, not up front: a model request with eight tool
     // schemas is a large tree, and most rows are never expanded.
     const details = el("details", { class: "log-detail" }, [el("summary", { text: "detail" })]);
     details.addEventListener("toggle", () => {

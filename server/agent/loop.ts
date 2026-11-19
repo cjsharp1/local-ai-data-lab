@@ -6,7 +6,7 @@
  *
  *   1. Log which guardrail layers are on for this turn.
  *   2. Build the messages: system prompt (layer 1), history, the question.
- *   3. Send them to the local model WITH the six tools.
+ *   3. Send them to the local model WITH the eight tools.
  *   4. If it asks for tool calls: run each one through the data server,
  *      emit a screen event with the structured result, append the text
  *      result to the conversation, and go back to 3.

@@ -5,7 +5,7 @@
  *
  * The app does not need this — it talks to the data server over stdio.
  * This entry point exists so other MCP clients can connect to the same
- * six tools without starting the app: MCP Inspector, for instance,
+ * eight tools without starting the app: MCP Inspector, for instance,
  * pointed at http://127.0.0.1:3201/mcp. Same factory, same database, same
  * read-only guarantees; only the transport differs.
  *

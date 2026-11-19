@@ -12,7 +12,7 @@
  * ---------------------------------------------------------------------------
  *
  * The app's central rule is that it reaches the data ONLY through the
- * data server's six narrow tools — it never opens the database itself.
+ * data server's eight narrow tools — it never opens the database itself.
  * A "show me everything" page inside the app would break that rule, and
  * blur the line the whole lab is about: what the model can reach versus
  * what exists.
@@ -190,5 +190,5 @@ app.listen(PORT, HOST, (error?: Error) => {
     process.exit(1);
   }
   console.log(`Data browser — http://${HOST}:${PORT}`);
-  console.log("Read-only. For people: the model never sees this page — it can only use the six tools.");
+  console.log("Read-only. For people: the model never sees this page — it can only use the eight tools.");
 });

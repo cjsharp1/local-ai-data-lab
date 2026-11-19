@@ -2,7 +2,7 @@
  * mcp-server.ts — builds the Checkpoint data MCP server.
  *
  * Exports `createServer()`, a FACTORY that returns a new `McpServer` with
- * the six tools registered. Both entry points hand this function to the
+ * the eight tools registered. Both entry points hand this function to the
  * SDK — stdio.ts to `serveStdio`, http.ts to `createMcpHandler`.
  *
  * ---------------------------------------------------------------------------

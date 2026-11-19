@@ -15,7 +15,7 @@
  *                                the answer used it
  *
  * None of them is a security boundary. What the model can REACH is fixed
- * by the six read-only tools and the read-only database; these layers
+ * by the eight read-only tools and the read-only database; these layers
  * only shape what it SAYS. The UI lets you switch each one off to see
  * what it was stopping — that comparison is the lesson.
  *

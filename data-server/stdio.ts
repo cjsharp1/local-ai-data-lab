@@ -4,7 +4,7 @@
  * This is how the app talks to the data server: `npm run dev` spawns this
  * file as a child process and speaks MCP over its stdin and stdout. The
  * process boundary is real — the app cannot reach the database except by
- * asking this process, over the protocol, for one of six tools.
+ * asking this process, over the protocol, for one of eight tools.
  *
  * You can also run it by hand for MCP Inspector:
  *

@@ -4,7 +4,7 @@
  * The app never opens the database. It starts the data server as a CHILD
  * PROCESS and speaks MCP to it over the child's stdin and stdout: list the
  * tools, call one, read the result. Everything the model learns about a
- * customer crosses this process boundary, through one of six tools.
+ * customer crosses this process boundary, through one of eight tools.
  *
  * ---------------------------------------------------------------------------
  * Which command to spawn

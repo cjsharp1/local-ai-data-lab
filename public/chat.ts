@@ -138,6 +138,6 @@ export function startReply(): PendingReply {
 export function clearTranscript(): void {
   transcript().replaceChildren(el("div", { class: "transcript-empty" }, [
     el("p", { text: "Ask about Checkpoint Outfitters' customers, orders or products." }),
-    el("p", { class: "muted", text: "The model runs on this machine and can only see the data through six read-only tools. Try a chip below." }),
+    el("p", { class: "muted", text: "The model runs on this machine and can only see the data through eight read-only tools. Try a chip below." }),
   ]));
 }

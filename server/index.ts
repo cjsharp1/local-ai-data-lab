@@ -7,7 +7,7 @@
  *
  *   GET  /api/health        model server, model, data server — separately
  *   GET  /api/models        installed LOCAL models, for the picker
- *   GET  /api/tools         the six tools exactly as the model sees them
+ *   GET  /api/tools         the eight tools exactly as the model sees them
  *   POST /api/tools/:name   call one tool directly — no model involved
  *   POST /api/chat          one turn, streamed back as Server-Sent Events
  *
