@@ -179,10 +179,15 @@ export interface GuardrailSettings {
  *               refusal, never the model's text
  *   blocked     the answer gate replaced an answer that had no tool call
  *               behind it
+ *   unable      the question IS about the shop, but the tools cannot
+ *               answer it — the model says what it could not look up.
+ *               Distinct from `refused`: a capability gap, not an
+ *               off-topic request. (Added after "What are the 10 most
+ *               popular products?" came back as an off-topic refusal.)
  *   unfinished  the loop stopped (iteration cap, repeated call, a reply
  *               that would not parse) before producing a usable reply
  */
-export type ReplyKind = "answer" | "clarify" | "refused" | "blocked" | "unfinished";
+export type ReplyKind = "answer" | "clarify" | "unable" | "refused" | "blocked" | "unfinished";
 
 // ---------------------------------------------------------------------------
 // The data layer, as reported to the app

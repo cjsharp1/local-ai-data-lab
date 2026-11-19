@@ -24,7 +24,7 @@ export type DoneEvent = Extract<StreamEvent, { type: "done" }>;
 
 export type {
   CustomerCard, CustomerSearchResult, OrderDetail, OrderListResult, ProductCard,
-  ProductSearchResult,
+  ProductSearchResult, TopProductsResult,
 } from "../shared/checkpoint.js";
 
 /**

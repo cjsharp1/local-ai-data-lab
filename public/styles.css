@@ -221,6 +221,7 @@ footer {
 .kind-badge { padding: 0.05rem 0.45rem; border-radius: 999px; border: 1px solid currentColor; }
 .kind-badge.kind-answer { color: var(--level-model); }
 .kind-badge.kind-clarify { color: var(--level-data); }
+.kind-badge.kind-unable { color: var(--level-info); }
 .kind-badge.kind-refused, .kind-badge.kind-blocked { color: var(--level-warn); }
 .kind-badge.kind-unfinished { color: var(--level-error); }
 .layer-chips { display: inline-flex; gap: 2px; }
@@ -399,6 +400,8 @@ table.grid tr.dup td { background: color-mix(in srgb, var(--level-warn) 12%, tra
 table.grid tr.total-row td { border-bottom: 0; text-align: right; color: var(--fg-dim); padding-top: 0.15rem; padding-bottom: 0.15rem; }
 table.grid tr.total-row.strong td { color: var(--fg); font-weight: 700; border-top: 1px solid var(--fg-faint); }
 .price-now { font-size: 0.68rem; color: var(--level-warn); }
+td.bar-cell { width: 22%; padding-right: 1rem; vertical-align: middle; }
+.bar { display: block; height: 0.55rem; border-radius: 2px; background: color-mix(in srgb, var(--level-tool) 70%, transparent); }
 
 button.link {
   background: none;

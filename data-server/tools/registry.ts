@@ -1,8 +1,8 @@
 /**
  * registry.ts — the complete list of tools the data server offers.
  *
- * Six read-only tools, and that list IS the fence. Whatever the model is
- * told or tricked into wanting, these six calls are the only things it
+ * Seven read-only tools, and that list IS the fence. Whatever the model is
+ * told or tricked into wanting, these seven calls are the only things it
  * can ask the database for. Adding a tool here widens what a model can
  * reach; nothing else in the project does.
  *
@@ -12,13 +12,19 @@
  *   get_order        one order's lines and totals
  *   find_products    search the catalogue
  *   get_product      one product, with sales figures
+ *   top_products     best sellers, ranked by units sold
+ *
+ * There were six. The seventh was added when "What are the 10 most
+ * popular products?" — an in-scope question — could not be answered by
+ * any of them. That is the rule below working as intended: a gap gets a
+ * new narrow tool, never a general one.
  *
  * ---------------------------------------------------------------------------
  * Why there is no run_sql tool
  * ---------------------------------------------------------------------------
  *
  * A tool that runs SQL the model writes is the obvious shortcut — one
- * tool instead of six, and it can answer anything. It would also hand the
+ * tool instead of seven, and it can answer anything. It would also hand the
  * model the whole database: every customer's email in one SELECT, joins
  * nobody designed, queries that scan every row. The read-only connection
  * would still stop writes, but every other guarantee in this project —
@@ -27,7 +33,8 @@
  *
  * Narrow tools are more work to write and they are the security model.
  * Do not add a raw SQL tool; if a question cannot be answered with these
- * six, the right fix is a seventh narrow tool.
+ * seven, the right fix is an eighth narrow tool — as top_products was
+ * the seventh.
  */
 
 import { findCustomers } from "./definitions/find-customers.js";
@@ -36,6 +43,7 @@ import { listOrders } from "./definitions/list-orders.js";
 import { getOrder } from "./definitions/get-order.js";
 import { findProducts } from "./definitions/find-products.js";
 import { getProduct } from "./definitions/get-product.js";
+import { topProducts } from "./definitions/top-products.js";
 import type { AnyDataTool } from "./types.js";
 
 export type { AnyDataTool, DataTool, QueryRunner, ToolOutput } from "./types.js";
@@ -49,6 +57,7 @@ export const TOOLS: AnyDataTool[] = [
   getOrder,
   findProducts,
   getProduct,
+  topProducts,
 ];
 
 /**

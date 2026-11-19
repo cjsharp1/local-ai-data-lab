@@ -7,6 +7,8 @@
  *
  *   answer      the model's answer
  *   clarify     the model asked a question back
+ *   unable      on topic, but the tools cannot answer it — the model says
+ *               what it could not look up (a capability gap, not a refusal)
  *   refused     the model declined — the text is the APP's canned
  *               refusal, never the model's own words (layer 2)
  *   blocked     the answer gate replaced an answer that had no tool call
@@ -33,6 +35,7 @@ import type { DoneEvent, GuardrailSettings } from "./types.js";
 const KIND_LABEL: Record<string, string> = {
   answer: "answer",
   clarify: "clarifying question",
+  unable: "can't look that up",
   refused: "refused",
   blocked: "blocked by the answer gate",
   unfinished: "unfinished",

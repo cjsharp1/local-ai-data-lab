@@ -12,8 +12,9 @@
  * Outfitters?" from imagination (it will happily describe a Montana
  * retailer that does not exist).
  *
- * `clarify` and `refused` always pass: asking a question and declining
- * are both fine without data.
+ * `clarify`, `unable` and `refused` always pass: asking a question,
+ * saying the tools cannot answer, and declining are all fine without
+ * data.
  *
  * Switched OFF, the gate still checks and still writes a warn row — it
  * just lets the answer through. That is the smoke-alarm version, kept so

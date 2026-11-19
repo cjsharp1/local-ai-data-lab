@@ -27,7 +27,7 @@
 import { byId, el } from "../dom.js";
 import type {
   CustomerCard, CustomerSearchResult, OrderDetail, OrderListResult, ProductCard, ProductSearchResult,
-  ScreenContext, ScreenEvent,
+  ScreenContext, ScreenEvent, TopProductsResult,
 } from "../types.js";
 import { renderCustomerList } from "./views/customer-list.js";
 import { renderCustomer } from "./views/customer.js";
@@ -36,6 +36,7 @@ import { renderOrderTable } from "./views/order-table.js";
 import { renderOrder } from "./views/order.js";
 import { renderProductTable } from "./views/product-table.js";
 import { renderProduct } from "./views/product.js";
+import { renderTopProducts } from "./views/top-products.js";
 
 /** Short names for the history strip. */
 const SHORT: Record<string, string> = {
@@ -45,6 +46,7 @@ const SHORT: Record<string, string> = {
   get_order: "Order",
   find_products: "Products",
   get_product: "Product",
+  top_products: "Top products",
 };
 
 let history: ScreenEvent[] = [];
@@ -67,6 +69,7 @@ function renderBody(screen: ScreenEvent): HTMLElement {
     case "get_order": return renderOrder(screen.data as OrderDetail, ctx);
     case "find_products": return renderProductTable(screen.data as ProductSearchResult, ctx);
     case "get_product": return renderProduct(screen.data as ProductCard);
+    case "top_products": return renderTopProducts(screen.data as TopProductsResult, ctx);
     default: return el("p", { text: `No view for ${screen.tool}.` });
   }
 }

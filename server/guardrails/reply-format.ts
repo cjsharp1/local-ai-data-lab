@@ -3,10 +3,10 @@
  *
  * The model's final reply must be JSON of exactly this shape:
  *
- *     { "kind": "answer" | "clarify" | "refuse", "text": "..." }
+ *     { "kind": "answer" | "clarify" | "unable" | "refuse", "text": "..." }
  *
  * Ollama enforces the SHAPE (its `format` option constrains generation to
- * a JSON Schema), so the reply always parses into one of three kinds. The
+ * a JSON Schema), so the reply always parses into one of four kinds. The
  * model still chooses WHICH kind — a medium guarantee, not a hard one.
  *
  * What the shape buys:
@@ -16,6 +16,24 @@
  *              to refuse.
  *   answer   → passed to layer 3, the answer gate.
  *   clarify  → shown as written (a known gap: clarify text is not checked).
+ *   unable   → shown as written: the question is in scope, but the tools
+ *              cannot answer it, and the model says what is missing. Not
+ *              checked either — the same known gap as clarify.
+ *
+ * ---------------------------------------------------------------------------
+ * Why "unable" exists
+ * ---------------------------------------------------------------------------
+ *
+ * With only three kinds, "What are the 10 most popular products?" — asked
+ * before any tool could rank products by sales — came back as `refuse`,
+ * and the app showed "I can only help with Checkpoint Outfitters
+ * customers, orders and products": an off-topic refusal for an on-topic
+ * question. The model's own draft had said, correctly, that it could not
+ * see sales figures. Three kinds gave it no honest way to say so.
+ *
+ * A capability gap and an off-topic request are different failures with
+ * different fixes (a new tool, versus nothing at all), so the reply shape
+ * now tells them apart.
  *
  * ---------------------------------------------------------------------------
  * Why this costs an extra request
@@ -54,7 +72,7 @@ import type { OllamaMessage } from "../model/ollama.js";
 export const REPLY_SCHEMA: Record<string, unknown> = {
   type: "object",
   properties: {
-    kind: { type: "string", enum: ["answer", "clarify", "refuse"] },
+    kind: { type: "string", enum: ["answer", "clarify", "unable", "refuse"] },
     text: { type: "string" },
   },
   required: ["kind", "text"],
@@ -62,14 +80,14 @@ export const REPLY_SCHEMA: Record<string, unknown> = {
 
 /** The same shape, for checking what came back. */
 const replySchema = z.object({
-  kind: z.enum(["answer", "clarify", "refuse"]),
+  kind: z.enum(["answer", "clarify", "unable", "refuse"]),
   text: z.string(),
 });
 
 export type StructuredReply = z.infer<typeof replySchema>;
 
 /**
- * What the extra request adds: an instruction defining the three kinds.
+ * What the extra request adds: an instruction defining the four kinds.
  *
  * Note that this instruction carries its own idea of scope ("refuse if
  * the request is not about Checkpoint Outfitters..."), so layer 2 keeps
@@ -81,7 +99,8 @@ export const FORMAT_INSTRUCTION = [
   "Now write your reply to the user's last message as JSON with two fields.",
   "kind: \"answer\" if you are answering from what the tools returned;",
   "\"clarify\" if you need the user to say which record they mean or to give missing details;",
-  "\"refuse\" if the request is not about Checkpoint Outfitters' customers, orders or products.",
+  "\"unable\" if the request IS about Checkpoint Outfitters but the tools could not provide what is needed — say what you could not look up;",
+  "\"refuse\" ONLY if the request is not about Checkpoint Outfitters' customers, orders or products at all.",
   "text: your reply to the user.",
 ].join(" ");
 

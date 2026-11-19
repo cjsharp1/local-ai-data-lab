@@ -30,7 +30,7 @@ take the cloud model away entirely:
   fine-tuned on it. Every fact about a customer reaches it through a
   tool call, at the moment it is asked — so the data can change without
   retraining, and the answer can always be traced to a query.
-- **The tools are the fence.** The app offers the model six read-only
+- **The tools are the fence.** The app offers the model seven read-only
   MCP tools and nothing else. There is no web search, no file access, no
   SQL tool. What the model can *reach* is decided by architecture, not
   by asking it nicely.
@@ -136,7 +136,7 @@ local-ai-data-lab/
 ├── shared/
 │   ├── types.ts            wire contract: LogEvent, StreamEvent, ScreenEvent,
 │   │                       GuardrailSettings, QueryReport
-│   └── checkpoint.ts       the six tools' structured result shapes, shared by
+│   └── checkpoint.ts       the seven tools' structured result shapes, shared by
 │                           data-server (Zod schemas typed against them) and UI
 │
 ├── data/
@@ -311,7 +311,9 @@ Teaching notes to put in the comments:
 
 ### 5.3 The MCP tools (read-only)
 
-Six tools, coarse-grained so most questions need one or two calls.
+Seven tools, coarse-grained so most questions need one or two calls. (Six were
+planned; `top_products` was added after an in-scope question — "the 10 most
+popular products" — could not be answered by any of them.)
 Every tool: Zod input schema with `.describe()` on every field, a
 description that says what it is for **and what it is not for**, a hard
 row cap, parameterised SQL only, and a structured result plus a short
@@ -325,6 +327,7 @@ text summary for the model.
 | `get_order` | `order_number` | header, line items with product names, shipping address, totals | order detail |
 | `find_products` | optional `query`, `category`, `brand`, `max_price`, `include_discontinued` | sku, name, category, brand, price | product table |
 | `get_product` | `sku` | full details, units sold, last ordered | product card |
+| `top_products` | optional `from_date`, `to_date`, `category`, `limit` ≤ 20 | products ranked by units sold, with orders and revenue (cancelled orders excluded) | best-seller ranking |
 
 Rules:
 
@@ -460,7 +463,12 @@ Comment this in `system-prompt.ts`.
 
 **Layer 2 — Structured replies** (`reply-format.ts`). Medium.
 - The final reply must match a JSON Schema via Ollama's `format`:
-  `{ kind: "answer" | "clarify" | "refuse", text: string }`.
+  `{ kind: "answer" | "clarify" | "unable" | "refuse", text: string }`.
+- **`unable`** (added after use): the question is about the shop, but the
+  tools cannot answer it — the model says what it could not look up.
+  Without it, a capability gap ("most popular products", before
+  `top_products` existed) came back as `refuse` and showed the off-topic
+  refusal for an on-topic question. Shown as written, like `clarify`.
 - `refuse` → the app shows its **own** canned refusal, never the
   model's text, so a refusal cannot carry an off-topic payload.
 - **Verified in Phase 4: `format` suppresses tool calls** — with both
@@ -618,7 +626,7 @@ Sections, in order:
 | Header | Title "Local AI Data Lab", one-line summary (local, no hosted model, no training), fact strip (tools, routes, guardrail layers, seed counts, ports), link to the repo |
 | What it is | §1 in brief, including the "locked down" table with strengths |
 | Tech stack | Runtime dependencies table, build/dev toolchain table, platform table (Node 24, Ollama, SQLite via `node:sqlite`), the two TypeScript configs, why no framework, why no model SDK |
-| What's in it | Six tools table, three guardrail layers table (soft/medium), the data (schema, seed counts, edge cases), the three panes, out of scope deliberately |
+| What's in it | Seven tools table, three guardrail layers table (soft/medium), the data (schema, seed counts, edge cases), the three panes, out of scope deliberately |
 | Running it | Prerequisites (Ollama, a pulled local model, honest RAM/disk figures), setup commands, scripts table |
 | Model eval | Summary of `docs/model-eval.md`: chosen default model and why, and the guardrail on/off table |
 | How it was built | Phases, and gotchas worth keeping (context truncation, `format` vs `tools`, cold loads, remote models, anything §2 turned up) |

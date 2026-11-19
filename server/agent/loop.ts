@@ -382,7 +382,7 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
     let reply: { kind: ReplyKind; text: string };
     if (request.guardrails.structuredReplies) {
       logger.iteration = undefined;
-      logger.info("Layer 2: asking again for the reply as JSON (answer | clarify | refuse), tools removed", { draft }, {
+      logger.info("Layer 2: asking again for the reply as JSON (answer | clarify | unable | refuse), tools removed", { draft }, {
         because: "format and tools cannot share a request — with both, the model never calls a tool",
       });
       const formatted = await callModel(
@@ -401,6 +401,12 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
           because: "a refusal written by the model could carry the content it is refusing",
         });
         reply = { kind: "refused", text: CANNED_REFUSAL };
+      } else if (parsed.reply.kind === "unable") {
+        result.layerActions.push("layer2:unable");
+        logger.info("Layer 2: the model says the tools cannot answer this — an in-scope gap, not a refusal", { modelText: parsed.reply.text }, {
+          actor: "model", because: "no tool returns what the question needs",
+        });
+        reply = { kind: "unable", text: parsed.reply.text };
       } else {
         reply = { kind: parsed.reply.kind, text: parsed.reply.text };
       }

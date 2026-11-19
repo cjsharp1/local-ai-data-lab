@@ -1,5 +1,5 @@
 /**
- * checkpoint.ts — the shapes of the six tools' structured results.
+ * checkpoint.ts — the shapes of the seven tools' structured results.
  *
  * The data server returns two things from every tool call: a short text
  * summary for the MODEL, and a structured result for everything else.
@@ -146,6 +146,30 @@ export interface ProductCard extends ProductRow {
   unitsSold: number;
   orderCount: number;
   lastOrderedAt: string | null;
+}
+
+/** One product in a sales ranking. */
+export interface TopProductRow {
+  rank: number;
+  sku: string;
+  name: string;
+  category: string;
+  brand: string;
+  discontinued: boolean;
+  /** Units on orders that were not cancelled, in the period. */
+  unitsSold: number;
+  orderCount: number;
+  /** What those units were sold for — the price snapshots, not today's price. */
+  revenueCents: number;
+}
+
+/** top_products */
+export interface TopProductsResult {
+  products: TopProductRow[];
+  /** The filters applied, echoed back so the screen can say what it ranked. */
+  fromDate: string | null;
+  toDate: string | null;
+  category: string | null;
 }
 
 /**
