@@ -40,8 +40,8 @@
  *                              quietly running it would hide the failure.
  *   Same call twice in a row → stop before running it again; error.
  *   Iteration cap            → error; the reply says it could not finish.
- *   History dropped by       → prompt_eval_count FALLS between requests in a
- *   Ollama                     turn (messages only ever grow); error.
+ *   History dropped by       → prompt_eval_count far below the size of the
+ *   Ollama                     messages sent; error.
  *
  * None of these is retried quietly. A teaching app that hides a model's
  * failures teaches that the model does not fail.
@@ -67,8 +67,27 @@ export const MAX_ITERATIONS = 6;
 /** Above this share of the context window, warn. */
 const CONTEXT_WARN_RATIO = 0.85;
 
+/**
+ * Below this share of the estimated message tokens, messages were dropped.
+ * Generous, because the estimate is rough; a real drop removes whole
+ * messages and lands far below it (measured: 60 tokens shown for ~2,400).
+ */
+const DROP_RATIO = 0.6;
+
+/** About four characters per token — rough, and only used with DROP_RATIO's margin. */
+function estimateMessageTokens(messages: OllamaMessage[]): number {
+  const chars = messages.reduce(
+    (sum, m) => sum + m.content.length + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0),
+    0,
+  );
+  return Math.round(chars / 4);
+}
+
 /** What the app says when the loop gives up. The app's words, not the model's. */
 const UNFINISHED_TEXT = "I couldn't finish looking that up. The activity log shows where it stopped.";
+
+/** What "unable" says when the model's own explanation is unusable. */
+const UNABLE_TEXT = "That's a fair question about the shop, but none of my lookups can answer it.";
 
 /** A previous turn, as text. Tool calls from earlier turns are not replayed. */
 export interface ChatTurn {
@@ -178,7 +197,6 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
   };
 
   let lastResponse: ChatResponse | undefined;
-  let previousPromptTokens: number | undefined;
 
   /** Sends one request, logging both halves and checking the context budget. */
   async function callModel(req: ChatRequest, because: string): Promise<ChatResponse> {
@@ -202,20 +220,26 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
       { direction: "in", actor: "model" },
     );
 
-    // Messages only grow within a turn, so the prompt only grows. If it
-    // shrank, Ollama dropped messages to fit num_ctx — silently. The only
-    // trace is this number.
+    // When a conversation outgrows num_ctx, Ollama silently drops whole
+    // older messages. The only trace is prompt_eval_count: the model was
+    // shown fewer tokens than the messages we sent contain.
     //
-    // Compared ONLY between requests that carry tools. The layer-2 request
-    // removes the tool definitions — about 1,400 tokens of every prompt —
-    // so its prompt is legitimately smaller, and comparing it would report
-    // a drop that never happened. (It did, the first time this ran.)
-    const comparable = req.tools !== undefined;
-    if (comparable && previousPromptTokens !== undefined && prompt < previousPromptTokens) {
+    // So compare it with an estimate of the MESSAGE TEXT alone (about 4
+    // characters per token — rough, hence the generous margin). Not with
+    // the previous request's count: an earlier version flagged any prompt
+    // that shrank, and the eval caught it crying wolf 58 times for
+    // llama3.2:3b, whose largest prompt was 1,778 of 8,192 tokens. Its
+    // chat template writes the tool definitions only into the LAST
+    // message, and only when that is a user message — so once a tool
+    // result is last, ~1,000 tokens of definitions vanish from the prompt
+    // legitimately. Templates move tool definitions around; they always
+    // render the messages, and a real drop removes whole messages.
+    const estimate = estimateMessageTokens(req.messages);
+    if (estimate > 500 && prompt < estimate * DROP_RATIO) {
       result.droppedMessages = true;
       logger.error(
-        `Ollama dropped earlier messages to fit the ${numCtx}-token context window (prompt fell from ${previousPromptTokens} to ${prompt} tokens)`,
-        { previousPromptTokens, promptTokens: prompt, numCtx },
+        `Ollama dropped earlier messages to fit the ${numCtx}-token context window (the model saw ${prompt} tokens; the messages alone are about ${estimate})`,
+        { promptTokens: prompt, estimatedMessageTokens: estimate, numCtx },
         { because: "the conversation outgrew num_ctx — the model can no longer see part of it, possibly a tool result" },
       );
     } else if (prompt >= numCtx * CONTEXT_WARN_RATIO) {
@@ -223,7 +247,6 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
         because: "past this, Ollama silently drops older messages",
       });
     }
-    if (comparable) previousPromptTokens = prompt;
     return response;
   }
 
@@ -401,6 +424,14 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
           because: "a refusal written by the model could carry the content it is refusing",
         });
         reply = { kind: "refused", text: CANNED_REFUSAL };
+      } else if (parsed.reply.kind === "unable" && parsed.reply.text.includes(CANNED_REFUSAL.slice(0, 40))) {
+        // Seen in use: the model chose "unable" — correctly — but copied the
+        // off-topic refusal line from the system prompt as its explanation,
+        // so an in-scope gap read as "I only help with Checkpoint
+        // Outfitters". Say what the kind means instead of what it copied.
+        result.layerActions.push("layer2:unable");
+        logger.warn("Layer 2: the model said 'unable' but wrote the off-topic refusal — showing a plain 'cannot look that up' instead", { modelText: parsed.reply.text });
+        reply = { kind: "unable", text: UNABLE_TEXT };
       } else if (parsed.reply.kind === "unable") {
         result.layerActions.push("layer2:unable");
         logger.info("Layer 2: the model says the tools cannot answer this — an in-scope gap, not a refusal", { modelText: parsed.reply.text }, {
