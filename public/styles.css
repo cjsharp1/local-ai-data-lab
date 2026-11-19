@@ -277,9 +277,28 @@ select {
   box-shadow: 0 8px 28px rgb(0 0 0 / 0.18);
   padding: 0.7rem 0.8rem;
 }
-.layer { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.55rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); }
+.layer {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  gap: 0.1rem 0.55rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
 .layer:last-of-type { border-bottom: 0; }
-.layer input { grid-row: span 2; margin-top: 0.2rem; }
+/* The checkbox sits level with the layer's NAME, not centred against the
+   whole block: left to the grid's default, a two-row item floats down
+   into the middle of the description, which reads as belonging to it. */
+.layer input {
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: 1rem;
+  height: 1rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--ok);
+  cursor: pointer;
+}
+.layer-name, .layer-note { grid-column: 2; }
 .layer-name { font-weight: 600; font-size: 0.85rem; }
 .strength { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 0.35rem; padding: 0 0.3rem; border-radius: 3px; border: 1px solid currentColor; }
 .strength.soft { color: var(--level-warn); }
