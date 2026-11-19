@@ -15,6 +15,7 @@
  *   --all-off     all three
  *   --model NAME  a different local model
  *   --verbose     print each log row's full detail (requests, responses, SQL)
+ *   --reasoning   let the model think first, and print its reasoning
  *
  * This runs exactly the code the web app runs — `runTurn` from
  * server/agent/loop.ts, the same MCP client, the same data server — with
@@ -56,6 +57,7 @@ const guardrails: GuardrailSettings = {
   answerGate: !(allOff || flag("--no-gate")) && DEFAULT_GUARDRAILS.answerGate,
 };
 const verbose = flag("--verbose");
+const reasoning = flag("--reasoning");
 
 // --- Printing ----------------------------------------------------------------------
 
@@ -75,6 +77,10 @@ function printRow(event: LogEvent): void {
 }
 
 function onEvent(event: StreamEvent): void {
+  if (event.type === "reasoning") {
+    console.log(`   reasoning (request ${event.request}, ${event.seconds} s):`);
+    console.log(event.text.split("\n").map((l) => `     │ ${l}`).join("\n"));
+  }
   if (event.type === "screen") {
     const s = event.screen;
     console.log(`   screen  ▣ rep screen shows ${s.tool}${s.isError ? " (error)" : ""} — ${Object.keys(
@@ -94,7 +100,7 @@ const dataServer = new DataServerClient((line) => {
 console.log(`\nQ: ${question}\n`);
 
 const result = await runTurn(
-  { message: question, history: [], model, guardrails },
+  { message: question, history: [], model, guardrails, reasoning },
   { logger, emit: onEvent, tools: dataServer },
 );
 

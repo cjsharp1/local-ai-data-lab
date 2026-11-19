@@ -227,6 +227,7 @@ const chatBody = z.object({
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).max(50).default([]),
   model: z.string().trim().min(1).optional(),
   guardrails: z.unknown().optional(),
+  reasoning: z.boolean().optional(),
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -263,9 +264,22 @@ app.post("/api/chat", async (req, res) => {
   });
 
   const logger = new Logger((event) => send({ type: "log", event }));
+
+  // Reasoning only for models that can: sending think: true to one that
+  // cannot is an error from Ollama. Checked against /api/tags, and said
+  // in the log rather than silently dropped.
+  let reasoning = body.reasoning === true;
+  if (reasoning) {
+    const info = (await listModels().catch(() => [])).find((m) => m.name === model);
+    if (!info?.capabilities.includes("thinking")) {
+      logger.warn(`${model} cannot show its reasoning — it has no "thinking" capability. Answering without it.`);
+      reasoning = false;
+    }
+  }
+
   try {
     await runTurn(
-      { message: body.message, history: body.history, model, guardrails: parseGuardrails(body.guardrails) },
+      { message: body.message, history: body.history, model, guardrails: parseGuardrails(body.guardrails), reasoning },
       { logger, emit: send, tools: dataServer },
       { signal: abort.signal },
     );

@@ -281,6 +281,15 @@ export type StreamEvent =
       args: Record<string, unknown>;
       iteration: number;
     }
+  /**
+   * The model's reasoning for one request, when "Show reasoning" is on.
+   *
+   * Reasoning is more generated text, produced before the reply — not a
+   * window into a hidden "true" thought process. It is shown because
+   * reading it often explains a tool choice, and because seeing how much
+   * of it there is explains why reasoning makes replies slower.
+   */
+  | { type: "reasoning"; request: number; text: string; seconds: number }
   /** A tool has finished, successfully or not. */
   | {
       type: "tool_end";
@@ -307,6 +316,8 @@ export type StreamEvent =
       requests: number;
       elapsedMs: number;
       tokensPerSecond: number | null;
+      /** Whether the model was allowed to reason before answering. */
+      reasoning: boolean;
     }
   /** Something failed; the message is safe to show the user. */
   | { type: "error"; message: string };
@@ -354,6 +365,8 @@ export interface ChatRequestBody {
   model?: string;
   /** Which layers are on for THIS turn. Missing layers default to on. */
   guardrails: GuardrailSettings;
+  /** Let the model reason before answering, if it supports it. Default off. */
+  reasoning?: boolean;
 }
 
 /** POST /api/tools/:name — a tool called by the user, with no model. */

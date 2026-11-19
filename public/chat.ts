@@ -23,6 +23,13 @@
  * up list_orders…"), so a 20-second pause on a small model reads as work,
  * not as a hang.
  *
+ * With "Show reasoning" on, each model request's reasoning is added above
+ * the reply as a collapsed section — "Reasoning · request 1 · 1,240
+ * characters · 14.2 s" — and kept after the reply arrives, so you can
+ * read why it chose a tool next to what the tool returned. Reasoning is
+ * more generated text, not a hidden "true" thought process; the length
+ * and time are shown because they explain why it is slower.
+ *
  * Replies render through markdown.ts — DOM nodes only, never innerHTML —
  * because small models write markdown constantly. Refusals and blocks
  * render as plain text: they are the app's words.
@@ -71,6 +78,7 @@ export function addUserMessage(text: string): void {
 /** A reply in progress, and the ways it can end. */
 export interface PendingReply {
   status(text: string): void;
+  reasoning(text: string, request: number, seconds: number): void;
   finish(done: DoneEvent): void;
   fail(message: string): void;
 }
@@ -79,13 +87,24 @@ export interface PendingReply {
 export function startReply(): PendingReply {
   const statusLine = el("div", { class: "msg-status", text: "Thinking…" });
   const body = el("div", { class: "msg-body" }, [statusLine]);
-  const msg = el("div", { class: "msg assistant pending" }, [body]);
+  // Reasoning sections sit above the body and survive the body being
+  // replaced by the final reply.
+  const thoughts = el("div", { class: "msg-reasoning" });
+  const msg = el("div", { class: "msg assistant pending" }, [thoughts, body]);
   transcript().append(msg);
   scrollToEnd();
 
   return {
     status(text) {
       statusLine.textContent = text;
+    },
+
+    reasoning(text, request, seconds) {
+      thoughts.append(el("details", { class: "reasoning" }, [
+        el("summary", { text: `Reasoning · request ${request} · ${text.length.toLocaleString("en-US")} characters · ${seconds} s` }),
+        el("div", { class: "reasoning-text", text }),
+      ]));
+      scrollToEnd();
     },
 
     finish(done) {
@@ -100,6 +119,7 @@ export function startReply(): PendingReply {
       msg.append(el("div", { class: "msg-badges" }, [
         el("span", { class: `kind-badge kind-${done.kind}`, text: KIND_LABEL[done.kind] ?? done.kind }),
         layerChips(done.guardrails),
+        done.reasoning ? el("span", { class: "layer-chip on", text: "R", title: "Reasoning was on" }) : null,
         el("span", { class: "msg-stats", text: stats, title: `model ${done.model}` }),
       ]));
       scrollToEnd();

@@ -110,8 +110,39 @@ async function loadModels(): Promise<void> {
     return option;
   }));
   select.value = state.model;
+  state.thinkers = new Set(body.models.filter((m) => m.capabilities.includes("thinking")).map((m) => m.name));
+  syncReasoning();
   select.addEventListener("change", () => {
     state.model = select.value;
+    syncReasoning();
+  });
+}
+
+// --- Show reasoning -----------------------------------------------------------------
+
+/**
+ * The switch is only offered for models that can reason. Switching to one
+ * that cannot unticks it and greys it out, with a tooltip saying why —
+ * rather than letting a request fail or silently ignoring the setting.
+ */
+function syncReasoning(): void {
+  const box = byId<HTMLInputElement>("reasoning");
+  const label = byId("reasoning-label");
+  const can = state.thinkers.has(state.model);
+  box.disabled = !can;
+  if (!can) {
+    box.checked = false;
+    state.reasoning = false;
+  }
+  label.classList.toggle("disabled", !can);
+  label.title = can
+    ? "Let the model think before answering, and show what it wrote. Several times slower."
+    : `${state.model} cannot show its reasoning — it has no "thinking" capability.`;
+}
+
+function initReasoning(): void {
+  byId<HTMLInputElement>("reasoning").addEventListener("change", (e) => {
+    state.reasoning = (e.target as HTMLInputElement).checked;
   });
 }
 
@@ -186,6 +217,9 @@ function route(event: StreamEvent, reply: PendingReply, question: string): void 
     case "tool_end":
       reply.status("Reading the result…");
       break;
+    case "reasoning":
+      reply.reasoning(event.text, event.request, event.seconds);
+      break;
     case "screen":
       showScreen(event.screen);
       break;
@@ -215,6 +249,7 @@ async function send(question: string): Promise<void> {
     model: state.model,
     // A copy: the settings for THIS turn, even if the menu changes mid-turn.
     guardrails: { ...state.guardrails },
+    reasoning: state.reasoning,
   };
 
   try {
@@ -280,6 +315,7 @@ function init(): void {
   clearTranscript();
   initScreen({ open: (tool, args) => void openTool(tool, args) });
   initGuardrails();
+  initReasoning();
   initChips();
 
   const input = byId<HTMLTextAreaElement>("chat-input");

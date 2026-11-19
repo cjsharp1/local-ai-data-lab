@@ -101,6 +101,11 @@ export interface TurnRequest {
   history: ChatTurn[];
   model: string;
   guardrails: GuardrailSettings;
+  /**
+   * Let the model reason before each response. The caller has already
+   * checked the model supports it (server/index.ts); off by default.
+   */
+  reasoning?: boolean;
 }
 
 /** Where tools come from. The MCP client satisfies this. */
@@ -210,6 +215,18 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
     const response = await chat(req, options.signal);
     lastResponse = response;
 
+    // Reasoning, when it was asked for: its own log row and stream event,
+    // so it can be read beside the decision it led to. Ollama reports one
+    // eval_count for reasoning and reply together, so the time shown is
+    // the whole response's generation time.
+    const thinking = response.message.thinking?.trim();
+    if (thinking) {
+      const seconds = Math.round(ms(response.eval_duration) / 100) / 10;
+      logger.model(`${req.model} reasoned for ${thinking.length.toLocaleString("en-US")} characters before responding`,
+        { thinking }, { actor: "model", because: "Show reasoning is on" });
+      emit({ type: "reasoning", request: result.requests, text: thinking, seconds });
+    }
+
     const tps = tokensPerSecond(response);
     const prompt = response.prompt_eval_count ?? 0;
     const load = ms(response.load_duration);
@@ -271,6 +288,7 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
       requests: result.requests,
       elapsedMs: Date.now() - started,
       tokensPerSecond: lastResponse ? tokensPerSecond(lastResponse) : null,
+      reasoning: request.reasoning === true,
     };
     logger.info(`Turn complete: ${kind} · ${result.requests} model request${result.requests === 1 ? "" : "s"} · ${(done.elapsedMs / 1000).toFixed(1)} s`);
     emit(done);
@@ -280,8 +298,9 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
 
   // 1. Which layers are on — first, so every transcript explains itself.
   logger.iteration = undefined;
-  logger.info(`New turn · ${describeGuardrails(request.guardrails)} · model ${request.model}`, {
-    guardrails: request.guardrails, model: request.model, numCtx,
+  logger.info(`New turn · ${describeGuardrails(request.guardrails)} · model ${request.model}` +
+    (request.reasoning ? " · reasoning on" : ""), {
+    guardrails: request.guardrails, model: request.model, numCtx, reasoning: request.reasoning === true,
   }, { actor: "user", because: "the user sent a message" });
 
   if (isRemoteModel(request.model)) {
@@ -315,7 +334,7 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
       logger.iteration = iteration;
 
       const response = await callModel(
-        buildRequest({ model: request.model, messages, tools: ollamaTools, ...options }),
+        buildRequest({ model: request.model, messages, tools: ollamaTools, think: request.reasoning, ...options }),
         iteration === 1 ? "the user asked a question" : "the tool results are ready",
       );
 
@@ -409,7 +428,7 @@ export async function runTurn(request: TurnRequest, deps: TurnDeps, options: Tur
         because: "format and tools cannot share a request — with both, the model never calls a tool",
       });
       const formatted = await callModel(
-        buildRequest({ model: request.model, messages: formatRequestMessages(messages), format: REPLY_SCHEMA, ...options }),
+        buildRequest({ model: request.model, messages: formatRequestMessages(messages), format: REPLY_SCHEMA, think: request.reasoning, ...options }),
         "layer 2 needs the final reply as structured JSON",
       );
       const parsed = parseReply(formatted.message.content);

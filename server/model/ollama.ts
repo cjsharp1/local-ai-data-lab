@@ -21,10 +21,14 @@
  * Every request goes through `buildRequest()`, so these cannot be
  * forgotten on one call site:
  *
- *   think: false   Qwen 3.5 "thinks" by default — measured on this
+ *   think          OFF unless the user switches on "Show reasoning".
+ *                  Qwen 3.5 "thinks" by default — measured on this
  *                  project's machine, a one-word answer took 252 thinking
  *                  tokens and 27 seconds, against 0.5 s with thinking off.
- *                  Thinking is a real feature; it is not the lesson here.
+ *                  So it is opt-in, per request, and only for models whose
+ *                  /api/tags capabilities include "thinking". Sending
+ *                  `think: false` explicitly matters: leaving it out lets
+ *                  a thinking model think anyway.
  *
  *   stream: false  One JSON response per request. Streaming alongside tool
  *                  calls works, but it complicates the log for little gain
@@ -69,7 +73,7 @@ export interface OllamaMessage {
   tool_calls?: OllamaToolCall[];
   /** On a "tool" message: which tool produced this result. */
   tool_name?: string;
-  /** Present only when thinking is on — which here it never is. */
+  /** The model's reasoning, present only when the request set think: true. */
   thinking?: string;
 }
 
@@ -90,7 +94,7 @@ export interface ChatRequest {
   tools?: OllamaTool[];
   /** A JSON Schema the reply must match. Suppresses tool calls — see reply-format.ts. */
   format?: Record<string, unknown>;
-  think: false;
+  think: boolean;
   stream: false;
   options: {
     num_ctx: number;
@@ -219,6 +223,8 @@ export function buildRequest(parts: {
   format?: Record<string, unknown>;
   temperature?: number;
   seed?: number;
+  /** Let the model reason before answering. Off unless asked for. */
+  think?: boolean;
 }): ChatRequest {
   const { numCtx } = ollamaConfig();
   return {
@@ -226,7 +232,7 @@ export function buildRequest(parts: {
     messages: parts.messages,
     ...(parts.tools ? { tools: parts.tools } : {}),
     ...(parts.format ? { format: parts.format } : {}),
-    think: false,
+    think: parts.think === true,
     stream: false,
     options: {
       num_ctx: numCtx,

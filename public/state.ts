@@ -14,6 +14,10 @@
  *   guardrails  which layers are on — sent with EVERY request, never stored
  *               on the server, so each turn records its own settings.
  *   model       the picked local model.
+ *   reasoning   "Show reasoning" — let the model think before answering, and
+ *               show what it wrote. Off by default: it is several times slower.
+ *   thinkers    which installed models can reason (from /api/tags), so the
+ *               switch can be disabled for the ones that cannot.
  *   busy        a turn is running; the input is disabled meanwhile.
  */
 
@@ -24,5 +28,7 @@ export const state = {
   guardrails: { scopedPrompt: true, structuredReplies: true, answerGate: true } as GuardrailSettings,
   model: "",
   numCtx: 0,
+  reasoning: false,
+  thinkers: new Set<string>(),
   busy: false,
 };

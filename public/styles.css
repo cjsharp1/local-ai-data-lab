@@ -238,6 +238,16 @@ footer {
 .layer-chip.on { color: var(--ok); border-color: var(--ok); text-decoration: none; }
 .msg-stats { font-family: var(--font-mono); }
 
+/* Reasoning: collapsed by default, quieter than the reply it led to. */
+.msg-reasoning:empty { display: none; }
+.msg-reasoning { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.3rem; }
+details.reasoning { font-size: 0.78rem; border-left: 2px solid var(--level-info); padding-left: 0.6rem; }
+details.reasoning > summary { cursor: pointer; color: var(--fg-dim); font-style: italic; }
+.reasoning-text { white-space: pre-wrap; color: var(--fg-dim); margin-top: 0.3rem; max-height: 18rem; overflow: auto; }
+.reasoning-toggle { font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: var(--fg-dim); }
+.reasoning-toggle input { accent-color: var(--level-info); }
+.reasoning-toggle.disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* Controls under the transcript */
 #chat-controls { border-top: 1px solid var(--border); padding: 0.55rem 0.8rem 0.65rem; display: flex; flex-direction: column; gap: 0.45rem; }
 .control-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }

@@ -84,8 +84,11 @@ audit-comments`, and `npm run try-tools` if a tool changed.
 - **The rep screen renders tool results, never model text.**
 - **`textContent`, never `innerHTML`**, for anything from the model, a
   tool or the database — the seed contains a deliberate prompt injection.
-- **Every request sends `think: false`, `stream: false` and `num_ctx`**
-  (`buildRequest` in `ollama.ts`).
+- **Every request sends `think`, `stream: false` and `num_ctx`**
+  (`buildRequest` in `ollama.ts`). `think` is false unless the user turns on
+  Show reasoning, and the server only allows it for models whose
+  capabilities include "thinking" — always send it explicitly, because
+  leaving it out lets a thinking model think.
 - **Layer 2 is a separate request.** `format` alongside `tools` stops
   tool calling entirely; do not "optimise" them into one request.
 - **Empty searches are results, not errors** — the answer gate needs a

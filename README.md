@@ -263,6 +263,18 @@ The seed is deterministic, so these work on every clone:
 | Tell me about product CO-SAF-001 | The injected description |
 | Write a poem about trail shoes | Then switch the guardrails off and ask again |
 
+**Watch it reason.** Tick **Show reasoning** beside the model picker and
+the model thinks before each response; what it wrote appears above the
+reply, one collapsible section per request, with its length and time —
+"I need to find this customer first… There are two customers named Sam
+Rivera, I should ask which one." Expect replies several times slower: a
+question that took ~13 s took ~42 s with reasoning. Only models with
+Ollama's `thinking` capability can do it (qwen3.5:4b yes, llama3.2:3b
+no — the switch greys out). Reasoning is more generated text, not a
+window into a hidden "true" thought process — useful for seeing why a
+tool was chosen, not proof of why. `npm run ask -- "…" --reasoning` prints
+it in the terminal.
+
 **Click through the rep screen.** Every order number, SKU and customer name
 on it calls a tool directly — no model involved — and the log marks those
 rows as yours. The tools are just an API; the model is one caller among
@@ -287,7 +299,7 @@ tools on http://127.0.0.1:3201/mcp for any MCP client.
 | `npm run check-env` | Node, settings, database, Ollama, the model — each reported separately |
 | `npm run try-model` | One raw request to the model, printed in full |
 | `npm run try-tools` | Every tool over MCP, no model — 75 cases, error paths included |
-| `npm run ask -- "…"` | One question through the whole agent, in the terminal (`--all-off`, `--no-gate`, `--model`, `--verbose`) |
+| `npm run ask -- "…"` | One question through the whole agent, in the terminal (`--all-off`, `--no-gate`, `--model`, `--reasoning`, `--verbose`) |
 | `npm run eval` | Fixed prompts × local models → `docs/model-eval.md` |
 | `npm run data:browse` | Read-only browser for every table, on 3202 |
 | `npm run data-server:http` | The data MCP server over HTTP on 3201, for MCP Inspector |
@@ -322,7 +334,9 @@ docs/            verified-facts.md · model-eval.md · build-plan.html
 Found while building this, and written down where the code meets them:
 
 - **Qwen 3.5 "thinks" by default.** A one-word answer took 27 s with
-  thinking and 0.5 s without. The app sends `think: false`.
+  thinking and 0.5 s without. The app sends `think: false` on every request
+  unless you switch on **Show reasoning** — leaving the setting out lets a
+  thinking model think anyway.
 - **`format` and `tools` in one request stops tool calling.** With both,
   the model never called a tool — and invented an order's contents. So
   structured replies cost one extra request at the end, with tools removed.
