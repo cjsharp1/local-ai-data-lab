@@ -402,10 +402,15 @@ Design rules:
 - The loop takes a `Logger` and an emitter, never `res`, so `ask.ts` and
   `eval.ts` can run it with no HTTP server.
 - **Context budget.** Log `prompt_eval_count` on every model row and
-  `warn` when it passes ~85% of `num_ctx`. Ollama truncates from the
-  front without telling you, and the system prompt goes first — so an
-  over-long conversation looks like the model ignoring layer 1. Comment
-  this trap where `num_ctx` is set.
+  `warn` when it passes ~85% of `num_ctx`. **Verified in Phase 4:** when
+  a conversation outgrows `num_ctx`, Ollama silently drops whole older
+  messages — keeping the system prompt and the newest message — with no
+  error. Lost history can include a tool result, after which the model
+  answers from nothing. Within a turn messages only grow, so if
+  `prompt_eval_count` FALLS between requests, log an `error` row saying
+  messages were dropped. Comment this trap where `num_ctx` is set.
+- **`think: false` on every request.** Verified: `qwen3.5:4b` thinks by
+  default — 27 s instead of 0.5 s for a one-word answer.
 
 ### 6.3 Handling small-model failures
 
@@ -452,10 +457,12 @@ Comment this in `system-prompt.ts`.
   `{ kind: "answer" | "clarify" | "refuse", text: string }`.
 - `refuse` → the app shows its **own** canned refusal, never the
   model's text, so a refusal cannot carry an off-topic payload.
-- If §2 shows `format` and `tools` cannot share a request, this layer
-  makes one extra request at the end — tools removed, `format` set,
-  the conversation so far included. Log it as its own `model` row and
-  say in a comment that it costs a round trip.
+- **Verified in Phase 4: `format` suppresses tool calls** — with both
+  set, the model called no tool and invented an order's contents. So this
+  layer always makes one extra request at the end — tools removed,
+  `format` set, the conversation so far included. Log it as its own
+  `model` row, and say in a comment that it costs a round trip and why
+  the single-request version is worse than useless.
 - A reply that fails to parse is an `error` row and the canned refusal,
   not a crash or a silent fallback to free text.
 - **Off** = free-text replies, treated as `answer`.
@@ -775,3 +782,8 @@ Commits: plain imperative, descriptive, no prefixes
   check before the main loop, with its latency and misjudgements shown.
 - Streaming tokens into the transcript, if Phase 0 shows it combines
   cleanly with tool calls.
+- Halve layer 2's cost with streaming: once the tool-calling request
+  starts streaming reply text instead of a tool call, abort it and go
+  straight to the formatted request, instead of generating a draft that
+  is thrown away. Measured: the discarded draft is roughly half of a
+  turn's generation time on a 4 GB GPU.

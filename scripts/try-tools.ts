@@ -87,6 +87,8 @@ const CASES: Case[] = [
   { label: "unknown order", tool: "get_order", args: { order_number: "CP-99999" }, expectError: true, expectText: "list_orders" },
 
   // find_products
+  { label: "empty query means no filter", tool: "find_products", args: { query: "", limit: 5 }, expectError: false, expectText: "products match" },
+  { label: "empty query still refused for customers", tool: "find_customers", args: { query: "", limit: 100 }, expectError: true, expectText: "Input validation error" },
   { label: "headlamps under $50", tool: "find_products", args: { query: "Nightstride", max_price: 50 }, expectError: false },
   { label: "loose category", tool: "find_products", args: { category: "shoes" }, expectError: false, expectText: "Trail shoes" },
   { label: "discontinued hidden by default", tool: "find_products", args: { query: "Scree 2" }, expectError: false, expectText: "Discontinued products were not included" },

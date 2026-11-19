@@ -17,9 +17,10 @@
  *      Ollama URL points at this machine, the model is a local one.
  *   3. The database — data/checkpoint.db exists. It is generated, not
  *      committed, so a fresh clone does not have one until `npm run seed`.
- *
- * Ollama itself (running? model pulled? cloud models installed?) is
- * checked once the model client exists to do it.
+ *   4. Ollama — running, the model pulled, the model able to call tools,
+ *      no cloud models installed, and whether Ollama's own local-only
+ *      switch (OLLAMA_NO_CLOUD) is on. "Not running" and "running but the
+ *      model is missing" need different fixes, so they are separate lines.
  *
  * ---------------------------------------------------------------------------
  * Why settings are checked as well as read
@@ -33,9 +34,11 @@
  */
 
 import "dotenv/config"; // reads .env and puts its values on process.env
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { OllamaUnreachableError, isRemoteModel, listModels, ollamaVersion } from "../server/model/ollama.js";
 
 /** The project root, derived from this file rather than from cwd. */
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -45,7 +48,7 @@ const DEFAULTS = {
   PORT: "3200",
   DATA_SERVER_PORT: "3201",
   OLLAMA_URL: "http://127.0.0.1:11434",
-  MODEL: "llama3.2:3b",
+  MODEL: "qwen3.5:4b",
   NUM_CTX: "8192",
 } as const;
 
@@ -176,7 +179,7 @@ function checkModel(): void {
   if (/[:-]cloud$/i.test(model)) {
     fail(`MODEL is "${model}", which runs on ollama.com, not here.`,
       "The app refuses cloud models: they would send customer data off",
-      "the machine. Pick a local model, e.g. llama3.2:3b.");
+      "the machine. Pick a local model, e.g. qwen3.5:4b.");
     return;
   }
   pass(`MODEL = ${model}`);
@@ -193,8 +196,8 @@ function checkContext(): void {
   }
   if (parsed < 8192) {
     note(`NUM_CTX = ${parsed} is small.`,
-      "Ollama trims long conversations from the front, which removes the",
-      "system prompt first. Expect the guardrails to weaken after a few turns.");
+      "When a conversation outgrows it, Ollama silently drops older messages —",
+      "tool results included. Expect answers to lose track after a few turns.");
     return;
   }
   pass(`NUM_CTX = ${parsed}`);
@@ -212,6 +215,92 @@ function checkDatabase(): void {
   }
 }
 
+// --- 4. Ollama ---------------------------------------------------------------
+
+/**
+ * Whether Ollama's own local-only mode looks switched on.
+ *
+ * This script cannot ask the running Ollama server, so it reports what it
+ * can see: the OLLAMA_NO_CLOUD variable in this user's environment, and
+ * the setting in ~/.ollama/server.json. A note either way, not a failure —
+ * the app refuses cloud models regardless; this switch makes every OTHER
+ * program on the machine refuse them too.
+ */
+function cloudSwitch(): string | null {
+  if (process.env.OLLAMA_NO_CLOUD === "1" || process.env.OLLAMA_NO_CLOUD === "true") {
+    return "OLLAMA_NO_CLOUD=1";
+  }
+  try {
+    const config = JSON.parse(readFileSync(join(homedir(), ".ollama", "server.json"), "utf8")) as Record<string, unknown>;
+    if (config.disable_ollama_cloud === true) return "disable_ollama_cloud in ~/.ollama/server.json";
+  } catch {
+    // No file, or not JSON: either way, no setting to report.
+  }
+  return null;
+}
+
+async function checkOllama(): Promise<void> {
+  // Never contact a non-local Ollama from here: check 2 has already failed
+  // it, and the point of that failure is not to send anything there.
+  const host = new URL(setting("OLLAMA_URL")).hostname;
+  if (!LOCAL_HOSTS.has(host)) return;
+
+  let version: string;
+  try {
+    version = await ollamaVersion();
+  } catch (error: unknown) {
+    if (error instanceof OllamaUnreachableError) {
+      fail("Ollama is not running.", "Start the Ollama app (or run `ollama serve`), then check again.");
+      return;
+    }
+    throw error;
+  }
+  pass(`Ollama ${version} is running`);
+
+  const models = await listModels();
+  const model = setting("MODEL");
+  // /api/tags names a model "qwen3.5:4b"; a bare "qwen3.5" means ":latest".
+  const wanted = model.includes(":") ? model : `${model}:latest`;
+  const found = models.find((m) => m.name === wanted);
+
+  if (!found) {
+    fail(`The model "${model}" is not installed.`,
+      `Run:  ollama pull ${model}`,
+      models.length > 0
+        ? `Installed: ${models.map((m) => m.name).join(", ")}`
+        : "No models are installed yet.");
+  } else if (!found.supportsTools) {
+    fail(`"${model}" cannot call tools, and this app is built on tool calls.`,
+      `Its capabilities: ${found.capabilities.join(", ") || "unknown"}. Pick a model with "tools".`);
+  } else {
+    pass(`MODEL ${model} is installed and can call tools (${found.parameterSize}, ${found.quantization})`);
+  }
+
+  // listModels() already hides cloud models; ask again unfiltered here so
+  // their presence can be reported rather than silently skipped.
+  const raw = (await (await fetch(`${new URL(setting("OLLAMA_URL")).origin}/api/tags`)).json()) as {
+    models?: Array<Record<string, unknown>>;
+  };
+  const remote = (raw.models ?? []).filter((m) => isRemoteModel(String(m.name ?? ""), m));
+  if (remote.length > 0) {
+    note(`Cloud models are installed: ${remote.map((m) => String(m.name)).join(", ")}.`,
+      "The app hides and refuses them. Other programs on this machine will not.");
+  }
+
+  const cloud = cloudSwitch();
+  if (cloud) {
+    pass(`Ollama cloud features are off (${cloud})`);
+  } else {
+    // "Not seen" is not "off": a terminal opened before the variable was
+    // set does not have it, even though Ollama (restarted since) does.
+    note("Ollama's local-only switch is not visible from this terminal.",
+      "If you set OLLAMA_NO_CLOUD=1 after opening this terminal, it is probably",
+      "on — Ollama's server log says \"Ollama cloud disabled: true\" at startup.",
+      "Either way the app refuses cloud models; the switch makes every other",
+      "program on the machine refuse them too.");
+  }
+}
+
 // --- Run ---------------------------------------------------------------------
 
 console.log("Checking environment...\n");
@@ -221,6 +310,7 @@ checkOllamaUrl();
 checkModel();
 checkContext();
 checkDatabase();
+await checkOllama();
 
 if (failures === 0) {
   console.log("\nEnvironment looks good.");

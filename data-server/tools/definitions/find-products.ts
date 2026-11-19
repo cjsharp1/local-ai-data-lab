@@ -19,6 +19,18 @@
  *   the catalogue wants things that can be sold; an old order still shows
  *   its discontinued lines through get_order regardless.
  *
+ *   An EMPTY filter counts as no filter. Asked "what do you sell?", a
+ *   small model sends `"query": ""` meaning "anything". A minimum-length
+ *   rule rejected that with "Too small: expected string to have >=1
+ *   characters" — which does not tell the model to leave the field out,
+ *   so it retried the identical call until the loop stopped it. Browsing
+ *   the whole catalogue is harmless, so "" simply means absent here.
+ *
+ *   (find_customers is the deliberate opposite: its query must be at
+ *   least 2 characters, so there is no way to ask for "every customer".
+ *   That rule is a defence — it is what stopped a prompt injection's
+ *   attempt to list all customers — and it stays.)
+ *
  * Like list_orders, the SQL is fixed text, with each filter switched off
  * by binding NULL. See that file for why.
  */
@@ -72,11 +84,11 @@ export const findProducts = defineTool({
     "Not for one product's full details or sales (use get_product).",
 
   inputSchema: z.object({
-    query: z.string().trim().min(1).optional()
+    query: z.string().trim().optional()
       .describe("A word or short phrase to find in the product name, brand or description, e.g. \"headlamp\" or \"waterproof\"."),
-    category: z.string().trim().min(1).optional()
+    category: z.string().trim().optional()
       .describe("All or part of a category name, e.g. \"Trail shoes\" or \"paddle\"."),
-    brand: z.string().trim().min(1).optional()
+    brand: z.string().trim().optional()
       .describe("All or part of a brand name, e.g. \"Switchfell\"."),
     max_price: lenientNumber(z.number().positive()).optional()
       .describe("Highest price in US DOLLARS, e.g. 100 for products up to $100."),

@@ -17,6 +17,13 @@
  *   small model will otherwise pick the first one and answer confidently
  *   about the wrong person.
  *
+ * The query must be at least 2 characters, ON PURPOSE: there is no way to
+ * ask this tool for "every customer". When a prompt injection hidden in a
+ * product description told the model to list every customer's email, the
+ * model tried — `find_customers({ query: "", limit: 100 })` — and this
+ * schema, with its 20-row cap, is what refused it. The model did not
+ * notice the attack; the narrow tool did not need it to.
+ *
  * The SQL is fixed text with bound parameters, like every tool here.
  * Optional parts are switched off by binding NULL rather than by building
  * a different string — see the phone clause below.
