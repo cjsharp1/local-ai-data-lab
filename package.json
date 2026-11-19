@@ -5,7 +5,7 @@
   "main": "server/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch server/index.ts",
+    "dev": "tsc -p tsconfig.client.json && tsx watch server/index.ts",
     "build": "tsc && tsc -p tsconfig.client.json && tsx scripts/copy-data.ts",
     "build:client": "tsc -p tsconfig.client.json",
     "watch:client": "tsc -p tsconfig.client.json --watch",

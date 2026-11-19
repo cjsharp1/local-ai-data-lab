@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local AI Data Lab</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<!--
+  The app shell. Three panes — chat, rep screen, activity log — wired up
+  by app.js (compiled in place from app.ts). Everything dynamic is built
+  with textContent; nothing here or in the scripts uses innerHTML.
+-->
+</head>
+<body>
+
+<header class="top">
+  <h1>Local AI Data Lab</h1>
+  <span class="tagline">A local model, a private database, six read-only tools — no API key, nothing leaves this machine.</span>
+  <div id="health" aria-live="polite"></div>
+</header>
+<div id="health-banner" role="status" hidden></div>
+
+<main>
+  <!-- CHAT ---------------------------------------------------------------->
+  <section id="chat-pane" class="pane" aria-label="Chat">
+    <div class="pane-bar">
+      <span class="pane-title">Chat</span>
+      <span class="spacer"></span>
+      <button id="new-chat" class="bar-button" type="button">New conversation</button>
+    </div>
+
+    <div id="transcript" aria-live="polite"></div>
+
+    <div id="chat-controls">
+      <div class="control-row">
+        <label class="muted" for="model-select" style="font-size:0.78rem">Model</label>
+        <select id="model-select"></select>
+
+        <details id="guardrails">
+          <summary id="g-summary">Guardrails 3/3</summary>
+          <div class="guardrails-menu">
+            <label class="layer">
+              <input type="checkbox" id="g-prompt" checked>
+              <span class="layer-name">1 · Scoped prompt<span class="strength soft">soft</span></span>
+              <span class="layer-note">Tells the model its only job. An instruction — the model may ignore it. Off: "You are a helpful assistant."</span>
+            </label>
+            <label class="layer">
+              <input type="checkbox" id="g-format" checked>
+              <span class="layer-name">2 · Structured replies<span class="strength medium">medium</span></span>
+              <span class="layer-note">The reply must say answer, clarify or refuse. The shape is enforced; refusals show the app's words, not the model's. Costs one extra request.</span>
+            </label>
+            <label class="layer">
+              <input type="checkbox" id="g-gate" checked>
+              <span class="layer-name">3 · Answer gate<span class="strength medium">medium</span></span>
+              <span class="layer-note">An answer is shown only if a tool call succeeded this turn. Checks that a tool ran, not that the answer used it. Off: warns instead of blocking.</span>
+            </label>
+            <div class="guardrails-actions">
+              <button id="g-all-on" class="bar-button" type="button">All on</button>
+              <button id="g-all-off" class="bar-button" type="button">All off</button>
+              <span class="note">None of these is a security boundary — the tools are.</span>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <form id="chat-form">
+        <textarea id="chat-input" rows="1" placeholder="Ask about a customer, an order or a product…" aria-label="Your question"></textarea>
+        <button id="send" type="submit">Send</button>
+      </form>
+
+      <div id="chips" aria-label="Example prompts"></div>
+    </div>
+  </section>
+
+  <!-- REP SCREEN ------------------------------------------------------------>
+  <section id="screen-pane" class="pane" aria-label="Rep screen">
+    <div class="pane-bar">
+      <span class="pane-title">Rep screen</span>
+      <div id="screen-header"></div>
+    </div>
+    <div id="screen-strip" hidden></div>
+    <div id="screen-body"></div>
+  </section>
+
+  <!-- ACTIVITY LOG ---------------------------------------------------------->
+  <section id="log-pane" class="pane" aria-label="Activity log">
+    <div class="pane-bar">
+      <span class="pane-title">Activity log</span>
+      <span class="spacer"></span>
+      <button id="log-clear" class="bar-button" type="button">Clear</button>
+    </div>
+    <div id="log-scroll"><ol id="log-rows"></ol></div>
+  </section>
+</main>
+
+<footer>
+  <span>Cost: $0 — runs on your machine</span>
+  <span>Speed is the local stand-in for cost: tokens per second</span>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

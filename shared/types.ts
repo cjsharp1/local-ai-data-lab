@@ -329,3 +329,62 @@ export interface HealthReport {
   model: HealthCheck;
   dataServer: HealthCheck;
 }
+
+// ---------------------------------------------------------------------------
+// Route bodies
+// ---------------------------------------------------------------------------
+
+/** A previous turn, as the browser keeps it: text only. */
+export interface HistoryTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** POST /api/chat — what the browser sends. */
+export interface ChatRequestBody {
+  message: string;
+  /** Earlier turns, oldest first. Text only — tool calls are not replayed. */
+  history: HistoryTurn[];
+  /** A local model name; the server's default when absent. */
+  model?: string;
+  /** Which layers are on for THIS turn. Missing layers default to on. */
+  guardrails: GuardrailSettings;
+}
+
+/** POST /api/tools/:name — a tool called by the user, with no model. */
+export interface ToolCallRequestBody {
+  args: Record<string, unknown>;
+}
+
+/** What POST /api/tools/:name returns: the screen, and the log rows it made. */
+export interface ToolCallResponseBody {
+  screen: ScreenEvent;
+  log: LogEvent[];
+}
+
+/** A locally installed model, as the picker shows it. */
+export interface ModelInfo {
+  name: string;
+  parameterSize: string;
+  quantization: string;
+  sizeBytes: number;
+  capabilities: string[];
+  supportsTools: boolean;
+}
+
+/** GET /api/models */
+export interface ModelsResponseBody {
+  /** The model from .env, preselected in the picker. */
+  defaultModel: string;
+  /** The context window every request uses. */
+  numCtx: number;
+  models: ModelInfo[];
+}
+
+/** GET /api/tools — the tools exactly as the model is shown them. */
+export interface ToolsResponseBody {
+  tools: Array<{
+    type: "function";
+    function: { name: string; description: string; parameters: Record<string, unknown> };
+  }>;
+}
