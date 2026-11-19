@@ -221,13 +221,19 @@ export const customerSegment = defineTool({
       return { data, summary: `No customers match: ${described}.${hint}` };
     }
 
-    // The model's view: no email, no phone — see the header.
+    // The model's view: no email, no phone — see the header. The wording
+    // matters: an earlier "Contact details are not included" was read by
+    // the model as "the records have no emails", and it told the user so.
+    // That is false — the emails exist, are withheld from lists by design,
+    // and are on the rep screen. Saying so plainly lets the model answer
+    // truthfully: "I can't list them here; they're on your screen."
     const shown = customers.slice(0, Math.max(SUMMARY_ROWS, Math.min(customers.length, 10)));
     return {
       data,
       summary:
         `${total} customer${total === 1 ? "" : "s"} match ${described} (sorted by ${input.sort_by.replace("_", " ")}` +
-        `${input.lowest_first ? ", lowest first" : ""}). Contact details are not included — use get_customer for one person:\n` +
+        `${input.lowest_first ? ", lowest first" : ""}). Emails and phone numbers are withheld from customer lists ` +
+        `ON PURPOSE: the user can see them on the rep screen. Do not say the records have no emails:\n` +
         shown.map((c) =>
           `- #${c.id} ${c.name} — ${c.city} ${c.state}, ${c.orderCount} order${c.orderCount === 1 ? "" : "s"}, ` +
           `${money(c.lifetimeSpendCents)} spent, last order ${c.lastOrderAt ? day(c.lastOrderAt) : "never"}`,
