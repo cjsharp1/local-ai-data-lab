@@ -99,7 +99,7 @@ export const FORMAT_INSTRUCTION = [
   "Now write your reply to the user's last message as JSON with two fields.",
   "kind: \"answer\" if you are answering from what the tools returned;",
   "\"clarify\" if you need the user to say which record they mean or to give missing details;",
-  "\"unable\" if the request IS about Checkpoint Outfitters but the tools could not provide what is needed — say what you could not look up;",
+  "\"unable\" if the request IS about Checkpoint Outfitters but the tools could not provide what is needed — in text, say what you could not look up (do not use the refusal sentence);",
   "\"refuse\" ONLY if the request is not about Checkpoint Outfitters' customers, orders or products at all.",
   "text: your reply to the user.",
 ].join(" ");

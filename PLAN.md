@@ -312,8 +312,11 @@ Teaching notes to put in the comments:
 ### 5.3 The MCP tools (read-only)
 
 Seven tools, coarse-grained so most questions need one or two calls. (Six were
-planned; `top_products` was added after an in-scope question — "the 10 most
-popular products" — could not be answered by any of them.)
+planned. `top_products` was added after "the 10 most popular products" could
+not be answered; the follow-up "by revenue?" showed a tool per question does
+not scale, so it became `sales_report` — a semantic layer: metrics and
+groupings defined once in code as SQL fragments, chosen by the model from
+Zod enums. One tool, a family of questions, still no model-written SQL.)
 Every tool: Zod input schema with `.describe()` on every field, a
 description that says what it is for **and what it is not for**, a hard
 row cap, parameterised SQL only, and a structured result plus a short
@@ -327,7 +330,7 @@ text summary for the model.
 | `get_order` | `order_number` | header, line items with product names, shipping address, totals | order detail |
 | `find_products` | optional `query`, `category`, `brand`, `max_price`, `include_discontinued` | sku, name, category, brand, price | product table |
 | `get_product` | `sku` | full details, units sold, last ordered | product card |
-| `top_products` | optional `from_date`, `to_date`, `category`, `limit` ≤ 20 | products ranked by units sold, with orders and revenue (cancelled orders excluded) | best-seller ranking |
+| `sales_report` | `metric` (units · revenue · orders · avg_order_value), `group_by` (product · category · brand · customer · month · state), optional `from_date`, `to_date`, `category`, `status`, `lowest`, `limit` ≤ 20 | totals per group, ranked (months in date order); cancelled orders excluded unless `status` asks | sales report with bars |
 
 Rules:
 
@@ -415,9 +418,12 @@ Design rules:
   a conversation outgrows `num_ctx`, Ollama silently drops whole older
   messages — keeping the system prompt and the newest message — with no
   error. Lost history can include a tool result, after which the model
-  answers from nothing. Within a turn messages only grow, so if
-  `prompt_eval_count` FALLS between requests, log an `error` row saying
-  messages were dropped. Comment this trap where `num_ctx` is set.
+  answers from nothing. If `prompt_eval_count` is far below an estimate
+  of the message text sent (chars ÷ 4; flag under 60%), log an `error`
+  row saying messages were dropped. (Phase 6 correction: the first rule —
+  "the prompt fell between requests" — false-alarmed for llama3.2:3b,
+  whose chat template drops the tool definitions once a tool result is
+  the last message.) Comment this trap where `num_ctx` is set.
 - **`think: false` on every request.** Verified: `qwen3.5:4b` thinks by
   default — 27 s instead of 0.5 s for a one-word answer.
 
@@ -467,7 +473,7 @@ Comment this in `system-prompt.ts`.
 - **`unable`** (added after use): the question is about the shop, but the
   tools cannot answer it — the model says what it could not look up.
   Without it, a capability gap ("most popular products", before
-  `top_products` existed) came back as `refuse` and showed the off-topic
+  a sales tool existed) came back as `refuse` and showed the off-topic
   refusal for an on-topic question. Shown as written, like `clarify`.
 - `refuse` → the app shows its **own** canned refusal, never the
   model's text, so a refusal cannot carry an off-topic payload.

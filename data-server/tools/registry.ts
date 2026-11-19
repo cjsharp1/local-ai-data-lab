@@ -12,12 +12,16 @@
  *   get_order        one order's lines and totals
  *   find_products    search the catalogue
  *   get_product      one product, with sales figures
- *   top_products     best sellers, ranked by units sold
+ *   sales_report     totals and rankings: a metric × a grouping × filters
  *
- * There were six. The seventh was added when "What are the 10 most
- * popular products?" — an in-scope question — could not be answered by
- * any of them. That is the rule below working as intended: a gap gets a
- * new narrow tool, never a general one.
+ * There were six. A seventh, top_products, was added when "What are the
+ * 10 most popular products?" could not be answered — and the next
+ * question, "by revenue?", showed that a tool per question does not
+ * scale. It became sales_report: a SEMANTIC LAYER, where metrics and
+ * groupings are defined once in code and the model only picks from them
+ * (see sales-report.ts). Still narrow in the way that matters — fixed
+ * SQL fragments, bound values, capped results — but one tool now covers
+ * a whole family of questions.
  *
  * ---------------------------------------------------------------------------
  * Why there is no run_sql tool
@@ -33,8 +37,8 @@
  *
  * Narrow tools are more work to write and they are the security model.
  * Do not add a raw SQL tool; if a question cannot be answered with these
- * seven, the right fix is an eighth narrow tool — as top_products was
- * the seventh.
+ * seven, the right fix is a new narrow tool, or a new metric or grouping
+ * in sales_report's vocabulary.
  */
 
 import { findCustomers } from "./definitions/find-customers.js";
@@ -43,7 +47,7 @@ import { listOrders } from "./definitions/list-orders.js";
 import { getOrder } from "./definitions/get-order.js";
 import { findProducts } from "./definitions/find-products.js";
 import { getProduct } from "./definitions/get-product.js";
-import { topProducts } from "./definitions/top-products.js";
+import { salesReport } from "./definitions/sales-report.js";
 import type { AnyDataTool } from "./types.js";
 
 export type { AnyDataTool, DataTool, QueryRunner, ToolOutput } from "./types.js";
@@ -57,7 +61,7 @@ export const TOOLS: AnyDataTool[] = [
   getOrder,
   findProducts,
   getProduct,
-  topProducts,
+  salesReport,
 ];
 
 /**

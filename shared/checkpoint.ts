@@ -148,28 +148,37 @@ export interface ProductCard extends ProductRow {
   lastOrderedAt: string | null;
 }
 
-/** One product in a sales ranking. */
-export interface TopProductRow {
+/** One group in a sales report — a product, a month, a customer… */
+export interface SalesReportRow {
+  /** Position in the ranking (or in time, for months). */
   rank: number;
-  sku: string;
-  name: string;
-  category: string;
-  brand: string;
-  discontinued: boolean;
-  /** Units on orders that were not cancelled, in the period. */
-  unitsSold: number;
-  orderCount: number;
-  /** What those units were sold for — the price snapshots, not today's price. */
+  /** The group's identity: a SKU, a category, "2026-10", a customer id… */
+  key: string;
+  /** What to show: a product name, a customer's name, the key again… */
+  label: string;
+  /** The chosen metric — cents for revenue and average order value. */
+  value: number;
+  /** Every metric, so the screen can show them all whichever was chosen. */
+  units: number;
   revenueCents: number;
+  orders: number;
 }
 
-/** top_products */
-export interface TopProductsResult {
-  products: TopProductRow[];
-  /** The filters applied, echoed back so the screen can say what it ranked. */
-  fromDate: string | null;
-  toDate: string | null;
-  category: string | null;
+/** sales_report */
+export interface SalesReportResult {
+  metric: "units" | "revenue" | "orders" | "avg_order_value";
+  groupBy: "product" | "category" | "brand" | "customer" | "month" | "state";
+  rows: SalesReportRow[];
+  /** How many groups matched in total, before the limit. */
+  totalGroups: number;
+  /** The filters applied, echoed back so the screen can say what it measured. */
+  filters: {
+    fromDate: string | null;
+    toDate: string | null;
+    category: string | null;
+    status: string | null;
+    lowest: boolean;
+  };
 }
 
 /**

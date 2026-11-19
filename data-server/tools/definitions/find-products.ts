@@ -81,7 +81,7 @@ export const findProducts = defineTool({
     "optional. Categories: Trail shoes, Packs & hydration, Headlamps & lighting, " +
     "Navigation, Paddle, Bike, Apparel, Nutrition, Mandatory kit & safety. " +
     "Discontinued products are left out unless include_discontinued is true. " +
-    "Not for one product's full details (use get_product) or best sellers (use top_products).",
+    "Not for one product's full details (use get_product) or best sellers or sales totals (use sales_report).",
 
   inputSchema: z.object({
     query: z.string().trim().optional()
