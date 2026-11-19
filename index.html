@@ -541,15 +541,15 @@
       <table>
         <thead><tr><th></th><th>qwen3.5:4b</th><th>llama3.2:3b</th></tr></thead>
         <tbody>
-          <tr><td class="name">In-scope questions passed</td><td class="num">88%</td><td class="num">57%</td></tr>
-          <tr><td class="name">Off-topic stopped, layers on</td><td class="num">100%</td><td class="num">94%</td></tr>
+          <tr><td class="name">In-scope questions passed</td><td class="num">88%</td><td class="num">42%</td></tr>
+          <tr><td class="name">Off-topic stopped, layers on</td><td class="num">100%</td><td class="num">83%</td></tr>
           <tr><td class="name">Off-topic got through, layers off</td><td class="num">100%</td><td class="num">100%</td></tr>
-          <tr><td class="name">Seconds per question</td><td class="num">~33</td><td class="num">~12</td></tr>
-          <tr><td class="name">Tokens per second</td><td class="num">10</td><td class="num">32</td></tr>
+          <tr><td class="name">Seconds per question</td><td class="num">~40</td><td class="num">~20</td></tr>
+          <tr><td class="name">Tokens per second</td><td class="num">11</td><td class="num">30</td></tr>
         </tbody>
       </table>
     </div>
-    <p>qwen3.5:4b is the default because it gets questions right; llama3.2:3b is about three times faster. Full results in <a href="docs/model-eval.md">docs/model-eval.md</a>.</p>
+    <p>qwen3.5:4b is the default because it gets questions right; llama3.2:3b is about twice as fast per question, and loses more ground the more options the tools offer. Full results in <a href="docs/model-eval.md">docs/model-eval.md</a>.</p>
   </section>
 
   <section>
