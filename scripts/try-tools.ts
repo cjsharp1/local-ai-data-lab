@@ -77,6 +77,11 @@ const CASES: Case[] = [
   { label: "pending orders", tool: "list_orders", args: { status: "pending" }, expectError: false, expectText: "status pending" },
   { label: "last 30 days", tool: "list_orders", args: { from_date: daysAgo(30), to_date: daysAgo(0) }, expectError: false, expectText: "newest first" },
   { label: "date in words (schema)", tool: "list_orders", args: { from_date: "last month" }, expectError: true, expectText: "YYYY-MM-DD" },
+  { label: "orders containing a product", tool: "list_orders", args: { product: "CO-TRL-002" }, expectError: false, expectText: 'containing "CO-TRL-002"' },
+  { label: "biggest orders", tool: "list_orders", args: { sort_by: "total", limit: 3 }, expectError: false, expectText: "biggest first" },
+  { label: "orders over $500 shipped to Colorado", tool: "list_orders", args: { min_total: 500, ship_state: "Colorado" }, expectError: false, expectText: "shipped to CO" },
+  { label: "smallest orders", tool: "list_orders", args: { sort_by: "total", lowest_first: true, limit: 3 }, expectError: false, expectText: "smallest first" },
+  { label: "total range upside down", tool: "list_orders", args: { min_total: 500, max_total: 100 }, expectError: true, expectText: "is above max_total" },
   { label: "dates reversed", tool: "list_orders", args: { from_date: "2026-10-01", to_date: "2026-09-01" }, expectError: true, expectText: "is after" },
   { label: "unknown status (schema)", tool: "list_orders", args: { status: "lost" }, expectError: true, expectText: "Input validation error" },
 
@@ -120,6 +125,11 @@ const CASES: Case[] = [
   { label: "orders by state", tool: "sales_report", args: { metric: "orders", group_by: "state" }, expectError: false, expectText: "Orders by state" },
   { label: "average order value by month", tool: "sales_report", args: { metric: "avg_order_value", group_by: "month", from_date: daysAgo(120) }, expectError: false, expectText: "Average order value by month" },
   { label: "only cancelled orders", tool: "sales_report", args: { metric: "orders", group_by: "category", status: "cancelled" }, expectError: false, expectText: "status cancelled" },
+  { label: "worst sellers include the never-sold product", tool: "sales_report", args: { metric: "units", group_by: "product", lowest: true, limit: 5 }, expectError: false, expectText: "CO-PDL-001" },
+  { label: "zero-sales products in a period", tool: "sales_report", args: { metric: "units", group_by: "product", lowest: true, from_date: daysAgo(7), limit: 3 }, expectError: false, expectText: "— 0" },
+  { label: "orders in each status (cancelled included)", tool: "sales_report", args: { metric: "orders", group_by: "status" }, expectError: false, expectText: "cancelled" },
+  { label: "distinct customers by year", tool: "sales_report", args: { metric: "customers", group_by: "year" }, expectError: false, expectText: "Customers by year (oldest first)" },
+  { label: "gross sales by week", tool: "sales_report", args: { metric: "gross", group_by: "week", limit: 4 }, expectError: false, expectText: "Gross sales (with shipping and tax) by week" },
   { label: "a grouping that is not in the vocabulary", tool: "sales_report", args: { metric: "revenue", group_by: "email" }, expectError: true, expectText: "Input validation error" },
   { label: "a metric that is not in the vocabulary", tool: "sales_report", args: { metric: "SUM(price_cents)", group_by: "product" }, expectError: true, expectText: "Input validation error" },
   // customer_segment — flexible, but no "everyone" and no contact details for the model

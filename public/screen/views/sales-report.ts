@@ -18,7 +18,9 @@ import { link } from "./parts.js";
 const METRIC_LABEL: Record<SalesReportResult["metric"], string> = {
   units: "Units sold",
   revenue: "Revenue",
+  gross: "Gross sales",
   orders: "Orders",
+  customers: "Customers",
   avg_order_value: "Average order value",
 };
 
@@ -26,11 +28,12 @@ export function renderSalesReport(data: SalesReportResult, ctx: ScreenContext): 
   const f = data.filters;
   const scope = [
     f.category ? `category "${f.category}"` : "",
-    f.status ? `status ${f.status}` : "cancelled excluded",
+    f.status ? `status ${f.status}` : data.groupBy === "status" ? "every status" : "cancelled excluded",
     f.fromDate ? `from ${day(f.fromDate)}` : "",
     f.toDate ? `to ${day(f.toDate)}` : "",
   ].filter(Boolean).join(" · ");
-  const order = data.groupBy === "month" ? "oldest first" : f.lowest ? "lowest first" : "highest first";
+  const isTime = data.groupBy === "week" || data.groupBy === "month" || data.groupBy === "year";
+  const order = isTime ? "oldest first" : f.lowest ? "lowest first" : "highest first";
   const heading = el("p", { class: "screen-count", text:
     `${METRIC_LABEL[data.metric]} by ${data.groupBy} · ${order} · ${scope} · ${data.rows.length} of ${data.totalGroups}` });
 
@@ -38,7 +41,7 @@ export function renderSalesReport(data: SalesReportResult, ctx: ScreenContext): 
     return el("div", {}, [heading, el("p", { class: "screen-empty-note", text: "No sales match." })]);
   }
 
-  const isMoney = data.metric === "revenue" || data.metric === "avg_order_value";
+  const isMoney = data.metric === "revenue" || data.metric === "gross" || data.metric === "avg_order_value";
   const fmt = (v: number) => (isMoney ? money(v) : String(v));
   const max = Math.max(...data.rows.map((r) => r.value), 1);
 
@@ -50,7 +53,7 @@ export function renderSalesReport(data: SalesReportResult, ctx: ScreenContext): 
 
   const rows = data.rows.map((r) =>
     el("tr", {}, [
-      el("td", { class: "num", text: data.groupBy === "month" ? "" : String(r.rank) }),
+      el("td", { class: "num", text: isTime ? "" : String(r.rank) }),
       el("td", {}, nameCell(r)),
       el("td", { class: "num strong-col", text: fmt(r.value) }),
       el("td", { class: "bar-cell" }, [

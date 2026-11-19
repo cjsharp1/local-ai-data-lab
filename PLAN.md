@@ -329,12 +329,12 @@ text summary for the model.
 |---|---|---|---|
 | `find_customers` | `query` (name, email or phone fragment), `limit` ≤ 20 | id, name, email, city, order count | customer list |
 | `get_customer` | `customer_id` **or** `email` | profile, billing address, shipping addresses, order count, lifetime spend, last order date | customer card |
-| `list_orders` | optional `customer_id`, `email`, `status`, `from_date`, `to_date`, `limit` ≤ 50 | order number, date, status, item count, total | order table |
+| `list_orders` | optional `customer_id`, `email`, `status`, `from_date`, `to_date`, `product` (SKU or name), `min/max_total` (dollars), `ship_state`, `sort_by` (placed_at · total), `lowest_first`, `limit` ≤ 50 | order number, date, status, item count, total | order table |
 | `get_order` | `order_number` | header, line items with product names, shipping address, totals | order detail |
 | `find_products` | all optional: `query`, `category`, `brand`, `color`, `min/max_price` (dollars), `min/max_weight` (g), `availability` (for_sale · discontinued · all), `never_sold`, `sold_since`, `not_sold_since`, `min_units_sold`, `sort_by` (category · name · price · weight · units_sold · last_sold), `lowest_first`, `limit` ≤ 50 | sku, name, category, brand, price, weight, colour, units sold, last sold | product table |
 | `get_product` | `sku` | full details, units sold, last ordered | product card |
 | `customer_segment` | at least one of `state` (code or full name), `city`, `joined_from/to`, `min/max_orders`, `min/max_spend` (dollars), `ordered_since`, `not_ordered_since`, `bought_category`, `bought_product`; plus `sort_by`, `lowest_first`, `limit` ≤ 20 | customers with location, orders, spend, last order — **no email or phone in the model's text** (the screen gets them) | segment table |
-| `sales_report` | `metric` (units · revenue · orders · avg_order_value), `group_by` (product · category · brand · customer · month · state), optional `from_date`, `to_date`, `category`, `status`, `lowest`, `limit` ≤ 20 | totals per group, ranked (months in date order); cancelled orders excluded unless `status` asks | sales report with bars |
+| `sales_report` | `metric` (units · revenue · gross · orders · customers · avg_order_value), `group_by` (product · category · brand · customer · state · status · week · month · year), optional `from_date`, `to_date`, `category`, `status`, `lowest`, `limit` ≤ 20 | totals per group, ranked (months in date order); cancelled orders excluded unless `status` asks | sales report with bars |
 
 Rules:
 

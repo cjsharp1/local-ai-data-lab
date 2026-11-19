@@ -42,8 +42,8 @@
 import { z } from "zod";
 import type { CustomerRef, OrderListResult, OrderRow } from "../../../shared/checkpoint.js";
 import {
-  SUMMARY_ROWS, andMore, customerRefSchema, day, isoDateSchema, lenientNumber, money,
-  orderStatusSchema,
+  SUMMARY_ROWS, andMore, customerRefSchema, day, isoDateSchema, lenientBoolean, lenientNumber,
+  likePattern, money, orderStatusSchema, stateCode,
 } from "../common.js";
 import { ToolError, defineTool } from "../types.js";
 
@@ -65,14 +65,26 @@ interface Row {
   customer_name: string; item_count: number; total_cents: number; total: number;
 }
 
+/** Sort keys → ORDER BY, newest/biggest first and oldest/smallest first. Chosen by enum. */
+const SORTS = {
+  placed_at: { desc: "o.placed_at DESC", asc: "o.placed_at ASC" },
+  total: { desc: "o.total_cents DESC, o.placed_at DESC", asc: "o.total_cents ASC, o.placed_at DESC" },
+} as const;
+type SortKey = keyof typeof SORTS;
+
 /**
  * The query. `to_date` is inclusive of the whole day: placed_at is a
  * timestamp, so "on or before 2026-10-31" means "before 2026-11-01",
  * which is what `date(:to, '+1 day')` computes. Comparing a timestamp to
  * the bare date '2026-10-31' would quietly drop everything placed on the
  * 31st after midnight.
+ *
+ * The product filter is an EXISTS over the order's lines, so an order
+ * with two matching lines is still listed once. The state is the order's
+ * SHIPPING address — where it went, not where the customer lives.
  */
-const SQL = `
+function buildSql(sort: SortKey, lowest: boolean): string {
+  return `
   SELECT o.order_number,
          o.placed_at,
          o.status,
@@ -82,12 +94,21 @@ const SQL = `
          COUNT(*) OVER () AS total
   FROM orders o
   JOIN customers c ON c.id = o.customer_id
+  JOIN addresses a ON a.id = o.shipping_address_id
   WHERE (:customer IS NULL OR o.customer_id = :customer)
     AND (:status IS NULL OR o.status = :status)
     AND (:from IS NULL OR o.placed_at >= :from)
     AND (:to IS NULL OR o.placed_at < date(:to, '+1 day'))
-  ORDER BY o.placed_at DESC
+    AND (:min_total IS NULL OR o.total_cents >= :min_total)
+    AND (:max_total IS NULL OR o.total_cents <= :max_total)
+    AND (:ship_state IS NULL OR a.state = :ship_state)
+    AND (:product IS NULL OR EXISTS (
+          SELECT 1 FROM order_items i JOIN products p ON p.id = i.product_id
+          WHERE i.order_id = o.id
+            AND (p.sku LIKE :product ESCAPE '\\' OR p.name LIKE :product ESCAPE '\\')))
+  ORDER BY ${SORTS[sort][lowest ? "asc" : "desc"]}
   LIMIT :limit`;
+}
 
 interface CustomerRow { id: number; name: string; email: string }
 
@@ -96,11 +117,14 @@ export const listOrders = defineTool({
   title: "List orders",
 
   description:
-    "Lists Checkpoint Outfitters orders, newest first, with order number, date, " +
-    "status, item count and total. Filter by customer (customer_id OR email), " +
-    "status, and a date range — all optional. Use it for questions like \"what " +
-    "has this customer ordered\", \"which orders are still pending\" or \"orders " +
-    "last month\". Not for the line items of one order (use get_order).",
+    "Lists Checkpoint Outfitters orders with order number, date, status, item count " +
+    "and total. Filter by customer (customer_id OR email), status, date range, a product " +
+    "on the order (SKU or name), order total range in US dollars, and shipping state — all " +
+    "optional. Newest first by default; sort_by total for the biggest (or, with " +
+    "lowest_first, smallest) orders. Use it for \"what has this customer ordered\", " +
+    "\"which orders are pending\", \"orders last month\", \"orders containing CO-TRL-001\", " +
+    "\"our biggest orders\". Not for the line items of one order (use get_order) or totals " +
+    "(use sales_report).",
 
   inputSchema: z.object({
     customer_id: lenientNumber(z.number().int().positive()).optional()
@@ -113,6 +137,18 @@ export const listOrders = defineTool({
       .describe("Only orders placed on or after this date, YYYY-MM-DD."),
     to_date: isoDateSchema.optional()
       .describe("Only orders placed on or before this date, YYYY-MM-DD."),
+    product: z.string().trim().optional()
+      .describe("Only orders containing this product: SKU or name, or part of it, e.g. \"CO-TRL-001\" or \"Ridge Runner\"."),
+    min_total: lenientNumber(z.number().min(0)).optional()
+      .describe("Only orders whose total is at least this many US DOLLARS."),
+    max_total: lenientNumber(z.number().min(0)).optional()
+      .describe("Only orders whose total is at most this many US DOLLARS."),
+    ship_state: z.string().trim().optional()
+      .describe("Only orders shipped to this US state: code or full name, e.g. \"CO\" or \"Colorado\"."),
+    sort_by: z.enum(["placed_at", "total"]).default("placed_at")
+      .describe("placed_at (default, newest first) or total (biggest first)."),
+    lowest_first: lenientBoolean(z.boolean()).default(false)
+      .describe("Reverse the order: oldest first, or smallest total first. Defaults to false."),
     limit: lenientNumber(z.number().int().min(1).max(50)).default(20)
       .describe("Most orders to return, 1 to 50. Defaults to 20."),
   }),
@@ -127,6 +163,11 @@ export const listOrders = defineTool({
     if (input.from_date && input.to_date && input.from_date > input.to_date) {
       throw new ToolError(`from_date ${input.from_date} is after to_date ${input.to_date}.`);
     }
+    if (input.min_total !== undefined && input.max_total !== undefined && input.min_total > input.max_total) {
+      throw new ToolError(`min_total ${input.min_total} is above max_total ${input.max_total}.`);
+    }
+    const product = input.product ? input.product : null; // "" counts as absent
+    const shipState = input.ship_state ? stateCode(input.ship_state) : null;
 
     // Resolve the customer first, so an unknown one is an error the model
     // can act on — rather than an empty list that looks like "no orders".
@@ -147,11 +188,16 @@ export const listOrders = defineTool({
       customer = { id: row.id, name: row.name, email: row.email };
     }
 
-    const rows = db.all<Row>(SQL, {
+    const rows = db.all<Row>(buildSql(input.sort_by, input.lowest_first), {
       customer: customer?.id ?? null,
       status: input.status ?? null,
       from: input.from_date ?? null,
       to: input.to_date ?? null,
+      // Dollars in, cents out — Math.round because 19.99 * 100 is not 1999.
+      min_total: input.min_total !== undefined ? Math.round(input.min_total * 100) : null,
+      max_total: input.max_total !== undefined ? Math.round(input.max_total * 100) : null,
+      ship_state: shipState,
+      product: product ? likePattern(product) : null,
       limit: input.limit,
     });
 
@@ -171,7 +217,14 @@ export const listOrders = defineTool({
       input.status && `status ${input.status}`,
       input.from_date && `from ${input.from_date}`,
       input.to_date && `to ${input.to_date}`,
+      product && `containing "${product}"`,
+      input.min_total !== undefined && `total at least $${input.min_total}`,
+      input.max_total !== undefined && `total at most $${input.max_total}`,
+      shipState && `shipped to ${shipState}`,
     ].filter(Boolean).join(", ");
+    const order = input.sort_by === "total"
+      ? (input.lowest_first ? "smallest first" : "biggest first")
+      : (input.lowest_first ? "oldest first" : "newest first");
     const whose = customer ? `${customer.name} (customer #${customer.id})` : "all customers";
     const scope = filters ? `${whose}, ${filters}` : whose;
 
@@ -188,7 +241,7 @@ export const listOrders = defineTool({
     return {
       data,
       summary:
-        `${total} order${total === 1 ? "" : "s"} for ${scope}, newest first:\n` +
+        `${total} order${total === 1 ? "" : "s"} for ${scope}, ${order}:\n` +
         shown.map((o) =>
           `- ${o.orderNumber} ${day(o.placedAt)} ${o.status}, ` +
           `${o.itemCount} item${o.itemCount === 1 ? "" : "s"}, ${money(o.totalCents)}` +

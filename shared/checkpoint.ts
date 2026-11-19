@@ -178,8 +178,8 @@ export interface SalesReportRow {
 
 /** sales_report */
 export interface SalesReportResult {
-  metric: "units" | "revenue" | "orders" | "avg_order_value";
-  groupBy: "product" | "category" | "brand" | "customer" | "month" | "state";
+  metric: "units" | "revenue" | "gross" | "orders" | "customers" | "avg_order_value";
+  groupBy: "product" | "category" | "brand" | "customer" | "state" | "status" | "week" | "month" | "year";
   rows: SalesReportRow[];
   /** How many groups matched in total, before the limit. */
   totalGroups: number;
