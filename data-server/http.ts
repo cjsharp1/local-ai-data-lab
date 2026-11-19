@@ -111,7 +111,17 @@ app.get("/", (_req, res) => {
   );
 });
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, (error?: Error) => {
+  // Express 5 reports a failed listen (port already in use, say) by
+  // passing the error to THIS callback — not by throwing. Ignore the
+  // argument and the server announces itself, then exits silently.
+  if (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    console.error(code === "EADDRINUSE"
+      ? `Port ${PORT} is already in use — is another copy running? Stop it, or set DATA_SERVER_PORT in .env.`
+      : `Could not listen on ${HOST}:${PORT}: ${error.message}`);
+    process.exit(1);
+  }
   console.log(`${SERVER_NAME} ${SERVER_VERSION} — MCP over HTTP at http://${HOST}:${PORT}/mcp`);
   console.log("Database opened read-only. Localhost only.");
 });

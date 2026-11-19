@@ -178,7 +178,17 @@ app.get("/api/tables/:name", (req, res) => {
   res.json({ table: table.name, total, offset, limit, sort, dir: dir.toLowerCase(), rows, sql, params: { ...params, limit, offset } });
 });
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, (error?: Error) => {
+  // Express 5 reports a failed listen (port already in use, say) by
+  // passing the error to THIS callback — not by throwing. Ignore the
+  // argument and the server announces itself, then exits silently.
+  if (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    console.error(code === "EADDRINUSE"
+      ? `Port ${PORT} is already in use — is another copy running? Stop it, or set DATA_BROWSER_PORT in .env.`
+      : `Could not listen on ${HOST}:${PORT}: ${error.message}`);
+    process.exit(1);
+  }
   console.log(`Data browser — http://${HOST}:${PORT}`);
   console.log("Read-only. For people: the model never sees this page — it can only use the six tools.");
 });

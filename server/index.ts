@@ -276,7 +276,17 @@ app.post("/api/chat", async (req, res) => {
 
 // --- Start -------------------------------------------------------------------------
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, (error?: Error) => {
+  // Express 5 reports a failed listen (port already in use, say) by
+  // passing the error to THIS callback — not by throwing. Ignore the
+  // argument and the server announces itself, then exits silently.
+  if (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    console.error(code === "EADDRINUSE"
+      ? `Port ${PORT} is already in use — is another copy running? Stop it, or set PORT in .env.`
+      : `Could not listen on ${HOST}:${PORT}: ${error.message}`);
+    process.exit(1);
+  }
   const { model, numCtx, url } = ollamaConfig();
   console.log(`Local AI Data Lab — http://${HOST}:${PORT}`);
   console.log(`Model ${model} via Ollama at ${url} · context ${numCtx} tokens · no API key, nothing leaves this machine`);
