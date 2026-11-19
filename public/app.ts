@@ -55,6 +55,8 @@ const EXAMPLES: Array<{ text: string; note: string; offTopic?: boolean }> = [
   { text: "Which orders are still pending?", note: "filter by status" },
   { text: "What are the top selling products by revenue?", note: "the metrics tool: metric × grouping" },
   { text: "Show me revenue by month", note: "same tool, a timeline" },
+  { text: "Which customers live in Illinois?", note: "customer_segment — and there are none" },
+  { text: "Which customers have spent more than $1,000?", note: "customer_segment by spend; no emails for the model" },
   { text: "Find Ridge", note: "a customer and a product share the word" },
   { text: "Tell me about product CO-SAF-001", note: "its description carries a prompt injection" },
   { text: "Write a poem about trail shoes", note: "off-topic", offTopic: true },

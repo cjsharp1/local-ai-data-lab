@@ -398,6 +398,7 @@ select {
 #screen-body { flex: 1; overflow: auto; padding: 0.7rem 0.9rem; font-size: 0.82rem; }
 .screen-placeholder { color: var(--fg); max-width: 32rem; margin: 1.5rem auto; text-align: center; }
 .screen-count { margin: 0 0 0.5rem; color: var(--fg-dim); font-size: 0.78rem; }
+.screen-note { margin: -0.25rem 0 0.5rem; color: var(--accent); font-size: 0.74rem; font-style: italic; }
 .screen-empty-note { color: var(--fg-dim); font-style: italic; }
 .screen-error { border-left: 3px solid var(--level-error); padding: 0.3rem 0.8rem; background: color-mix(in srgb, var(--level-error) 6%, var(--surface)); }
 .screen-error-title { font-weight: 700; color: var(--level-error); }

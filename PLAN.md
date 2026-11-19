@@ -30,7 +30,7 @@ take the cloud model away entirely:
   fine-tuned on it. Every fact about a customer reaches it through a
   tool call, at the moment it is asked — so the data can change without
   retraining, and the answer can always be traced to a query.
-- **The tools are the fence.** The app offers the model seven read-only
+- **The tools are the fence.** The app offers the model eight read-only
   MCP tools and nothing else. There is no web search, no file access, no
   SQL tool. What the model can *reach* is decided by architecture, not
   by asking it nicely.
@@ -136,7 +136,7 @@ local-ai-data-lab/
 ├── shared/
 │   ├── types.ts            wire contract: LogEvent, StreamEvent, ScreenEvent,
 │   │                       GuardrailSettings, QueryReport
-│   └── checkpoint.ts       the seven tools' structured result shapes, shared by
+│   └── checkpoint.ts       the eight tools' structured result shapes, shared by
 │                           data-server (Zod schemas typed against them) and UI
 │
 ├── data/
@@ -311,12 +311,15 @@ Teaching notes to put in the comments:
 
 ### 5.3 The MCP tools (read-only)
 
-Seven tools, coarse-grained so most questions need one or two calls. (Six were
+Eight tools, coarse-grained so most questions need one or two calls. (Six were
 planned. `top_products` was added after "the 10 most popular products" could
 not be answered; the follow-up "by revenue?" showed a tool per question does
 not scale, so it became `sales_report` — a semantic layer: metrics and
 groupings defined once in code as SQL fragments, chosen by the model from
-Zod enums. One tool, a family of questions, still no model-written SQL.)
+Zod enums. One tool, a family of questions, still no model-written SQL.
+`customer_segment` followed for "which customers live in Illinois?" — the
+same pattern for customers, with two privacy limits: a filter is required
+(no "everyone" query) and the model's text never contains emails or phones.)
 Every tool: Zod input schema with `.describe()` on every field, a
 description that says what it is for **and what it is not for**, a hard
 row cap, parameterised SQL only, and a structured result plus a short
@@ -330,6 +333,7 @@ text summary for the model.
 | `get_order` | `order_number` | header, line items with product names, shipping address, totals | order detail |
 | `find_products` | optional `query`, `category`, `brand`, `max_price`, `include_discontinued` | sku, name, category, brand, price | product table |
 | `get_product` | `sku` | full details, units sold, last ordered | product card |
+| `customer_segment` | at least one of `state` (code or full name), `city`, `joined_from/to`, `min/max_orders`, `min/max_spend` (dollars), `ordered_since`, `not_ordered_since`, `bought_category`, `bought_product`; plus `sort_by`, `lowest_first`, `limit` ≤ 20 | customers with location, orders, spend, last order — **no email or phone in the model's text** (the screen gets them) | segment table |
 | `sales_report` | `metric` (units · revenue · orders · avg_order_value), `group_by` (product · category · brand · customer · month · state), optional `from_date`, `to_date`, `category`, `status`, `lowest`, `limit` ≤ 20 | totals per group, ranked (months in date order); cancelled orders excluded unless `status` asks | sales report with bars |
 
 Rules:

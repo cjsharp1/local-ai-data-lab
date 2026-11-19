@@ -27,7 +27,7 @@
 import { byId, el } from "../dom.js";
 import type {
   CustomerCard, CustomerSearchResult, OrderDetail, OrderListResult, ProductCard, ProductSearchResult,
-  SalesReportResult, ScreenContext, ScreenEvent,
+  CustomerSegmentResult, SalesReportResult, ScreenContext, ScreenEvent,
 } from "../types.js";
 import { renderCustomerList } from "./views/customer-list.js";
 import { renderCustomer } from "./views/customer.js";
@@ -37,6 +37,7 @@ import { renderOrder } from "./views/order.js";
 import { renderProductTable } from "./views/product-table.js";
 import { renderProduct } from "./views/product.js";
 import { renderSalesReport } from "./views/sales-report.js";
+import { renderCustomerSegment } from "./views/customer-segment.js";
 
 /** Short names for the history strip. */
 const SHORT: Record<string, string> = {
@@ -47,6 +48,7 @@ const SHORT: Record<string, string> = {
   find_products: "Products",
   get_product: "Product",
   sales_report: "Sales report",
+  customer_segment: "Segment",
 };
 
 let history: ScreenEvent[] = [];
@@ -70,6 +72,7 @@ function renderBody(screen: ScreenEvent): HTMLElement {
     case "find_products": return renderProductTable(screen.data as ProductSearchResult, ctx);
     case "get_product": return renderProduct(screen.data as ProductCard);
     case "sales_report": return renderSalesReport(screen.data as SalesReportResult, ctx);
+    case "customer_segment": return renderCustomerSegment(screen.data as CustomerSegmentResult, ctx);
     default: return el("p", { text: `No view for ${screen.tool}.` });
   }
 }

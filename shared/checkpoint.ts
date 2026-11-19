@@ -1,5 +1,5 @@
 /**
- * checkpoint.ts — the shapes of the seven tools' structured results.
+ * checkpoint.ts — the shapes of the eight tools' structured results.
  *
  * The data server returns two things from every tool call: a short text
  * summary for the MODEL, and a structured result for everything else.
@@ -179,6 +179,34 @@ export interface SalesReportResult {
     status: string | null;
     lowest: boolean;
   };
+}
+
+/** One customer in a segment. */
+export interface SegmentCustomer {
+  id: number;
+  name: string;
+  /** For the rep screen only — never put in the text the model reads. */
+  email: string;
+  /** For the rep screen only — never put in the text the model reads. */
+  phone: string;
+  city: string;
+  state: string;
+  joinedAt: string;
+  orderCount: number;
+  /** Excluding cancelled and returned orders, as on the customer card. */
+  lifetimeSpendCents: number;
+  lastOrderAt: string | null;
+}
+
+/** customer_segment */
+export interface CustomerSegmentResult {
+  customers: SegmentCustomer[];
+  /** How many customers matched in total, before the limit. */
+  total: number;
+  /** The filters applied, as given — so the screen can say what was asked. */
+  filters: Record<string, string | number | boolean>;
+  sortBy: string;
+  lowestFirst: boolean;
 }
 
 /**

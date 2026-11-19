@@ -96,7 +96,8 @@ export const findCustomers = defineTool({
     "id, email, city and order count. Use it first when the user names a " +
     "person, or gives an email or phone you need to look up. If several " +
     "customers match, ask the user which one they mean. Not for full details " +
-    "(use get_customer) or orders (use list_orders).",
+    "(use get_customer), orders (use list_orders), or listing customers by place, " +
+    "spend or purchases (use customer_segment).",
 
   inputSchema: z.object({
     query: lenientString(z.string().trim().min(2))

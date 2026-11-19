@@ -113,6 +113,16 @@ const CASES: Case[] = [
   { label: "only cancelled orders", tool: "sales_report", args: { metric: "orders", group_by: "category", status: "cancelled" }, expectError: false, expectText: "status cancelled" },
   { label: "a grouping that is not in the vocabulary", tool: "sales_report", args: { metric: "revenue", group_by: "email" }, expectError: true, expectText: "Input validation error" },
   { label: "a metric that is not in the vocabulary", tool: "sales_report", args: { metric: "SUM(price_cents)", group_by: "product" }, expectError: true, expectText: "Input validation error" },
+  // customer_segment — flexible, but no "everyone" and no contact details for the model
+  { label: "customers in a state, by full name", tool: "customer_segment", args: { state: "Colorado" }, expectError: false, expectText: "state CO" },
+  { label: "a state with no customers says where they do live", tool: "customer_segment", args: { state: "Illinois" }, expectError: false, expectText: "Customers live in:" },
+  { label: "spend over $1,000", tool: "customer_segment", args: { min_spend: 1000, limit: 5 }, expectError: false, expectText: "min spend $1000" },
+  { label: "never ordered", tool: "customer_segment", args: { max_orders: 0 }, expectError: false, expectText: "Avery Okafor" },
+  { label: "lapsed customers", tool: "customer_segment", args: { not_ordered_since: daysAgo(180) }, expectError: false, expectText: "customer" },
+  { label: "bought in a category", tool: "customer_segment", args: { bought_category: "Paddle", sort_by: "orders", limit: 3 }, expectError: false, expectText: "bought category Paddle" },
+  { label: "no filter is refused — no 'everyone' query", tool: "customer_segment", args: { limit: 20 }, expectError: true, expectText: "deliberately no way to list every customer" },
+  { label: "empty filters still count as none", tool: "customer_segment", args: { state: "", city: "" }, expectError: true, expectText: "at least one filter" },
+  { label: "limit over the cap (schema)", tool: "customer_segment", args: { state: "CO", limit: 80 }, expectError: true, expectText: "Input validation error" },
   { label: "limit over the cap (schema)", tool: "sales_report", args: { metric: "units", group_by: "product", limit: 100 }, expectError: true, expectText: "Input validation error" },
 ];
 

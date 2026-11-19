@@ -1,8 +1,8 @@
 /**
  * registry.ts — the complete list of tools the data server offers.
  *
- * Seven read-only tools, and that list IS the fence. Whatever the model is
- * told or tricked into wanting, these seven calls are the only things it
+ * Eight read-only tools, and that list IS the fence. Whatever the model is
+ * told or tricked into wanting, these eight calls are the only things it
  * can ask the database for. Adding a tool here widens what a model can
  * reach; nothing else in the project does.
  *
@@ -13,6 +13,7 @@
  *   find_products    search the catalogue
  *   get_product      one product, with sales figures
  *   sales_report     totals and rankings: a metric × a grouping × filters
+ *   customer_segment customers by where they live, what and when they buy
  *
  * There were six. A seventh, top_products, was added when "What are the
  * 10 most popular products?" could not be answered — and the next
@@ -21,14 +22,17 @@
  * groupings are defined once in code and the model only picks from them
  * (see sales-report.ts). Still narrow in the way that matters — fixed
  * SQL fragments, bound values, capped results — but one tool now covers
- * a whole family of questions.
+ * a whole family of questions. customer_segment does the same for
+ * customers ("which customers live in Colorado?") — with a required
+ * filter and no contact details for the model, because a tool that lists
+ * groups of customers is exactly what a prompt injection would want.
  *
  * ---------------------------------------------------------------------------
  * Why there is no run_sql tool
  * ---------------------------------------------------------------------------
  *
  * A tool that runs SQL the model writes is the obvious shortcut — one
- * tool instead of seven, and it can answer anything. It would also hand the
+ * tool instead of eight, and it can answer anything. It would also hand the
  * model the whole database: every customer's email in one SELECT, joins
  * nobody designed, queries that scan every row. The read-only connection
  * would still stop writes, but every other guarantee in this project —
@@ -37,8 +41,8 @@
  *
  * Narrow tools are more work to write and they are the security model.
  * Do not add a raw SQL tool; if a question cannot be answered with these
- * seven, the right fix is a new narrow tool, or a new metric or grouping
- * in sales_report's vocabulary.
+ * eight, the right fix is a new narrow tool, or a new metric, grouping or
+ * filter in sales_report's or customer_segment's vocabulary.
  */
 
 import { findCustomers } from "./definitions/find-customers.js";
@@ -48,6 +52,7 @@ import { getOrder } from "./definitions/get-order.js";
 import { findProducts } from "./definitions/find-products.js";
 import { getProduct } from "./definitions/get-product.js";
 import { salesReport } from "./definitions/sales-report.js";
+import { customerSegment } from "./definitions/customer-segment.js";
 import type { AnyDataTool } from "./types.js";
 
 export type { AnyDataTool, DataTool, QueryRunner, ToolOutput } from "./types.js";
@@ -62,6 +67,7 @@ export const TOOLS: AnyDataTool[] = [
   findProducts,
   getProduct,
   salesReport,
+  customerSegment,
 ];
 
 /**
