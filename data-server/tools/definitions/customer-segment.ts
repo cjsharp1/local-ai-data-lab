@@ -249,7 +249,7 @@ export const customerSegment = defineTool({
           `- #${c.id} ${c.name} — ${c.city} ${c.state}, ${c.orderCount} order${c.orderCount === 1 ? "" : "s"}, ` +
           `${money(c.lifetimeSpendCents)} spent, last order ${c.lastOrderAt ? day(c.lastOrderAt) : "never"}`,
         ).join("\n") +
-        andMore(shown.length, total),
+        andMore(shown.length, customers.length, total),
     };
   },
 });

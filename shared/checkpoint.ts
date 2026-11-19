@@ -129,11 +129,23 @@ export interface ProductRow {
   discontinued: boolean;
 }
 
+/** One product in a catalogue search: the row, plus what it can be filtered and sorted by. */
+export interface ProductMatch extends ProductRow {
+  weightGrams: number;
+  color: string;
+  /** Units on orders that were not cancelled. */
+  unitsSold: number;
+  lastSoldAt: string | null;
+}
+
 /** find_products */
 export interface ProductSearchResult {
-  products: ProductRow[];
+  products: ProductMatch[];
   /** How many products matched in total, before the limit. */
   total: number;
+  sortBy: string;
+  lowestFirst: boolean;
+  availability: "for_sale" | "discontinued" | "all";
 }
 
 /** get_product */

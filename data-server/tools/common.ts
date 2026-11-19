@@ -176,7 +176,26 @@ export function day(timestamp: string): string {
   return timestamp.slice(0, 10);
 }
 
-/** "…and 7 more" when a list was trimmed for the summary, else "". */
-export function andMore(shown: number, total: number): string {
-  return total > shown ? ` …and ${total - shown} more (shown on the rep screen).` : "";
+/**
+ * The tail of a trimmed list, saying honestly where the rest went.
+ *
+ * Three counts, because rows can go missing in two different places:
+ *
+ *   shown     lines in the model's summary
+ *   returned  rows the query returned — all of them reach the rep screen
+ *   total     rows that MATCHED, before the limit cut them off
+ *
+ * Rows between shown and returned are on the screen; rows between
+ * returned and total were never fetched, and only a larger limit will
+ * show them. An earlier version said "…and 11 more (shown on the rep
+ * screen)" for a limit-1 search with 12 matches — the screen had one row.
+ */
+export function andMore(shown: number, returned: number, total: number): string {
+  const onScreen = returned - shown;
+  const notReturned = total - returned;
+  const parts = [
+    onScreen > 0 && `${onScreen} more on the rep screen`,
+    notReturned > 0 && `${notReturned} more not fetched (raise the limit to see them)`,
+  ].filter(Boolean);
+  return parts.length > 0 ? ` …and ${parts.join("; ")}.` : "";
 }

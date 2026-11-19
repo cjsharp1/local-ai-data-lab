@@ -194,7 +194,7 @@ export const listOrders = defineTool({
           `${o.itemCount} item${o.itemCount === 1 ? "" : "s"}, ${money(o.totalCents)}` +
           (customer ? "" : ` — ${o.customerName}`),
         ).join("\n") +
-        andMore(shown.length, total),
+        andMore(shown.length, orders.length, total),
     };
   },
 });

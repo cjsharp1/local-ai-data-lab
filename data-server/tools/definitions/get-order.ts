@@ -153,7 +153,7 @@ export const getOrder = defineTool({
         `(customer #${data.customer.id}). Status: ${data.status}. ` +
         `Ships to ${a.label}: ${a.street}, ${a.city} ${a.state} ${a.zip}.\n` +
         `${lines.length} line${lines.length === 1 ? "" : "s"}:\n${lineText}` +
-        andMore(shown.length, lines.length) +
+        andMore(shown.length, lines.length, lines.length) +
         `\nSubtotal ${money(data.subtotalCents)}, shipping ${money(data.shippingCents)}, ` +
         `tax ${money(data.taxCents)}, total ${money(data.totalCents)}.`,
     };

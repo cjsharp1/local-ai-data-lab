@@ -148,7 +148,7 @@ export const findCustomers = defineTool({
         `${total} customers match "${query}" — more than one, so ask the user ` +
         `which they mean before going further:\n` +
         shown.map((c) => `- ${line(c)}`).join("\n") +
-        andMore(shown.length, total),
+        andMore(shown.length, matches.length, total),
     };
   },
 });
