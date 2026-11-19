@@ -401,25 +401,25 @@
   <header class="top">
     <p class="eyebrow">Project overview · runs locally · no API key · no model training</p>
     <h1>Local AI Data Lab</h1>
-    <p class="standfirst">A small model on your own machine, answering questions about a customer database it can reach only through six read-only tools — and a screen that shows what it looked up, as it looks it up.</p>
+    <p class="standfirst">A small model on your own machine, answering questions about a customer database it can reach only through eight read-only tools — and a screen that shows what it looked up, as it looks it up.</p>
   </header>
 
   <dl class="facts">
     <div class="fact">
       <dt>Status</dt>
-      <dd>In progress<small>phase 1 · skeleton</small></dd>
-    </div>
-    <div class="fact">
-      <dt>Model</dt>
-      <dd>Local<small>through Ollama</small></dd>
+      <dd>Complete<small>8 of 8 phases</small></dd>
     </div>
     <div class="fact">
       <dt>Tools</dt>
-      <dd>6<small>read-only, planned</small></dd>
+      <dd>8<small>read-only, over MCP</small></dd>
     </div>
     <div class="fact">
       <dt>Guardrail layers</dt>
       <dd>3<small>each switchable</small></dd>
+    </div>
+    <div class="fact">
+      <dt>Default model</dt>
+      <dd>qwen3.5:4b<small>chosen by the eval</small></dd>
     </div>
   </dl>
 
@@ -428,11 +428,174 @@
     <p class="sec-note">The premise</p>
     <p>Most AI chat apps send every question — and whatever data answers it — to a hosted model behind an API key. This lab takes the cloud model away. A small open model runs on your machine through <strong>Ollama</strong>, and the data it talks about sits in a <strong>SQLite</strong> file beside it.</p>
     <p>The model knows nothing about that data. It is not trained or fine-tuned on it. Every fact about a customer reaches it through a tool call, at the moment it is asked, so the data can change without retraining and every answer can be traced to a query.</p>
-    <p>The data belongs to <strong>Checkpoint Outfitters</strong>, a fictional adventure-racing gear shop. Three panes show the work: the chat, a live activity log down to the SQL, and a customer-service rep screen drawn from tool results — never from the model's own words.</p>
+    <p>The data belongs to <strong>Checkpoint Outfitters</strong>, a fictional adventure-racing gear shop. Three panes show the work: the chat, a live activity log down to the SQL, and a customer-service rep screen drawn from tool results — never from the model's own words. When the chat and the screen disagree, the screen is right.</p>
+
+    <div class="t-scroll">
+      <table>
+        <caption>What "locked down" does and does not mean</caption>
+        <thead><tr><th>Guarantee</th><th>How</th><th>Strength</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Only the shop's data</td><td>Eight MCP tools are the only tools offered</td><td>Hard</td></tr>
+          <tr><td class="name">Stays on the machine</td><td>No outbound calls; cloud models refused by name</td><td>Hard, for this app</td></tr>
+          <tr><td class="name">Cannot change the data</td><td>Database opened read-only; no write tools</td><td>Hard</td></tr>
+          <tr><td class="name">No arbitrary queries</td><td>Fixed, parameterised SQL; no SQL tool</td><td>Hard</td></tr>
+          <tr><td class="name">Stays on topic</td><td>Scoped system prompt</td><td>Soft</td></tr>
+          <tr><td class="name">Reply has a declared kind</td><td>Structured replies: answer · clarify · unable · refuse</td><td>Medium</td></tr>
+          <tr><td class="name">Answers only after a lookup</td><td>The answer gate</td><td>Medium</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="note">
-      <span class="note-label">What "locked down" means — and does not</span>
-      <p>What the model can <strong>reach</strong> is fixed by architecture: six read-only MCP tools, a database opened read-only, no SQL tool, no network. What it <strong>says</strong> is shaped by three guardrail layers, and those are weaker — the page will say how much weaker, measured, once the model eval has run.</p>
+      <span class="note-label">The distinction the lab exists to make</span>
+      <p>What the model can <strong>reach</strong> is fixed by architecture: eight read-only tools, a database opened read-only, no SQL tool, no network. What it <strong>says</strong> is shaped by three guardrail layers, and those are weaker. The UI lets you switch each one off to see what it was stopping.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tech stack</h2>
+    <p class="sec-note">Small on purpose</p>
+
+    <h3>Runtime dependencies</h3>
+    <div class="t-scroll">
+      <table>
+        <thead><tr><th>Package</th><th>Version</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">@modelcontextprotocol/server</td><td class="mono">2.4</td><td>The data server: tools with input and output schemas</td></tr>
+          <tr><td class="mono">@modelcontextprotocol/client</td><td class="mono">2.4</td><td>The app's connection to it, over stdio</td></tr>
+          <tr><td class="mono">@modelcontextprotocol/node</td><td class="mono">2.1</td><td>HTTP adapter and the localhost Host/Origin guards</td></tr>
+          <tr><td class="mono">express</td><td class="mono">5.3</td><td>The app, the HTTP data server, the data browser</td></tr>
+          <tr><td class="mono">zod</td><td class="mono">4.6</td><td>Every tool's arguments and results</td></tr>
+          <tr><td class="mono">dotenv</td><td class="mono">18</td><td>Optional <code>.env</code> — nothing secret in it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Platform</h3>
+    <div class="t-scroll">
+      <table>
+        <tbody>
+          <tr><td class="name">Node.js 24</td><td>Reads SQLite with the built-in <code>node:sqlite</code> — no native build</td></tr>
+          <tr><td class="name">Ollama</td><td>Runs the model; called with plain <code>fetch</code>, no SDK, so the log shows the real wire format</td></tr>
+          <tr><td class="name">TypeScript 7</td><td>Strict; two configs — Node half and browser half</td></tr>
+          <tr><td class="name">No framework</td><td>Vanilla TypeScript in the browser, compiled in place</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What's in it</h2>
+    <p class="sec-note">Eight tools, three layers, one fictional shop</p>
+
+    <h3>Eight read-only tools</h3>
+    <div class="t-scroll">
+      <table>
+        <thead><tr><th>Tool</th><th>For</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">find_customers</td><td>Someone by part of a name, email or phone</td></tr>
+          <tr><td class="mono">get_customer</td><td>One customer's full record</td></tr>
+          <tr><td class="mono">customer_segment</td><td>Customers by place, join date, orders, spend, purchases — a filter required, no contact details for the model</td></tr>
+          <tr><td class="mono">list_orders</td><td>Orders by customer, status, dates, product, total, shipping state</td></tr>
+          <tr><td class="mono">get_order</td><td>One order's lines and totals</td></tr>
+          <tr><td class="mono">find_products</td><td>The catalogue by words, price, weight, colour, availability, sales history — sorted any way</td></tr>
+          <tr><td class="mono">get_product</td><td>One product with its sales figures</td></tr>
+          <tr><td class="mono">sales_report</td><td>A semantic layer: 6 metrics × 9 groupings, defined once in code</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>There is deliberately no SQL tool. When questions outgrew the narrow tools, the fix was flexible tools built from fixed SQL fragments the model picks by name — never SQL the model writes.</p>
+
+    <h3>Three guardrail layers</h3>
+    <div class="t-scroll">
+      <table>
+        <thead><tr><th>Layer</th><th>What it does</th><th>Strength</th></tr></thead>
+        <tbody>
+          <tr><td class="name">1 · Scoped prompt</td><td>Tells the model its one job</td><td>Soft</td></tr>
+          <tr><td class="name">2 · Structured replies</td><td>Reply must be answer, clarify, unable or refuse; refusals show the app's words</td><td>Medium</td></tr>
+          <tr><td class="name">3 · Answer gate</td><td>An answer needs a successful lookup behind it</td><td>Medium</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The data</h3>
+    <p>80 customers, 202 addresses, 120 products, 400 orders and 1,007 order lines, generated deterministically so every clone has the same shop. Deliberate edge cases: two customers with the same name, a customer with no orders, a product never ordered, a discontinued product in old orders, a seven-line order — and a product whose description carries a prompt injection.</p>
+
+    <h3>Out of scope, deliberately</h3>
+    <ul class="plain">
+      <li>Writes — a guarded write tool with confirmation is the natural next lesson.</li>
+      <li>Streaming replies, and an input classifier as a fourth guardrail layer.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Running it</h2>
+    <p class="sec-note">Five commands</p>
+    <p>Node 24, Ollama, and about 4 GB of memory for the model. Then: <code>npm install</code>, <code>npm run seed</code>, <code>ollama pull qwen3.5:4b</code>, <code>npm run check-env</code>, <code>npm run dev</code> — and open <code>http://127.0.0.1:3200</code>. No API key at any step.</p>
+  </section>
+
+  <section>
+    <h2>Model eval</h2>
+    <p class="sec-note">Measured, not assumed</p>
+    <div class="t-scroll">
+      <table>
+        <thead><tr><th></th><th>qwen3.5:4b</th><th>llama3.2:3b</th></tr></thead>
+        <tbody>
+          <tr><td class="name">In-scope questions passed</td><td class="num">88%</td><td class="num">57%</td></tr>
+          <tr><td class="name">Off-topic stopped, layers on</td><td class="num">100%</td><td class="num">94%</td></tr>
+          <tr><td class="name">Off-topic got through, layers off</td><td class="num">100%</td><td class="num">100%</td></tr>
+          <tr><td class="name">Seconds per question</td><td class="num">~33</td><td class="num">~12</td></tr>
+          <tr><td class="name">Tokens per second</td><td class="num">10</td><td class="num">32</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>qwen3.5:4b is the default because it gets questions right; llama3.2:3b is about three times faster. Full results in <a href="docs/model-eval.md">docs/model-eval.md</a>.</p>
+  </section>
+
+  <section>
+    <h2>How it was built</h2>
+    <p class="sec-note">Eight phases, each verified and committed</p>
+    <ol class="phases">
+      <li class="done"><span class="ph-name">Verify the facts the plan depends on</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Skeleton: configs, comment audit, wire contract</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Data: commented schema, deterministic seed</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Data MCP server: tools, stdio and HTTP</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Model and agent loop, guardrails</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Three-pane UI</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Model eval</span><span class="ph-steps">done</span></li>
+      <li class="done"><span class="ph-name">Documentation</span><span class="ph-steps">done</span></li>
+    </ol>
+
+    <h3>Gotchas worth keeping</h3>
+    <ul class="plain">
+      <li>Setting <code>format</code> alongside <code>tools</code> stopped the model calling tools at all — it invented an order's contents instead.</li>
+      <li>Ollama silently drops older messages when a conversation outgrows <code>num_ctx</code>; the system prompt survives, a tool result may not.</li>
+      <li>Chat templates differ: llama3.2 removes the tool definitions from the prompt after the first tool result.</li>
+      <li>Qwen 3.5 thinks by default: 27 s for a one-word answer, 0.5 s with thinking off.</li>
+      <li>Tool wording becomes the model's answer: "contact details are not included" turned into "the records have no emails".</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Conventions held through the build</h2>
+    <p class="sec-note">The explanation is part of the deliverable</p>
+    <h3>Every file explains itself</h3>
+    <p>Every TypeScript file opens with a comment saying what it does, why it exists and what it teaches, checked by <code>npm run audit-comments</code>.</p>
+    <h3>Security by construction</h3>
+    <p>Read-only database, fixed queries, no SQL tool, localhost Host and Origin checks on every server, <code>textContent</code> for everything from a model, a tool or the database.</p>
+
+    <ul class="status">
+      <li class="ok">audit-comments passes — 56 files</li>
+      <li class="ok">try-tools — 75 of 75 cases</li>
+      <li class="ok">check-env passes</li>
+      <li class="ok">seed checks — 20 of 20</li>
+      <li>9,675 lines of TypeScript</li>
+      <li>8 tools · 5 routes · 3 layers</li>
+    </ul>
+
+    <div class="note">
+      <span class="note-label">What this is for</span>
+      <p>All eight phases are complete and every figure on this page is measured. <strong>It is not production software</strong> — no authentication, localhost only, invented data. It is built to be read and watched.</p>
     </div>
   </section>
 
