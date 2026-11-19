@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkpoint Data Browser</title>
+<link rel="stylesheet" href="browser.css">
+<!-- The data browser: every table and row, read-only, for people.
+     Served by data-browser/server.ts on 127.0.0.1:3202 — separate from the app. -->
+</head>
+<body>
+<header>
+  <h1>Checkpoint Outfitters — data browser</h1>
+  <p>Every row, read-only. <strong>For people:</strong> the model never sees this page. It can only reach this data through six narrow tools, at most 20 rows at a time.</p>
+</header>
+<div class="layout">
+  <nav>
+    <div class="nav-title">Tables</div>
+    <ul id="tables"></ul>
+  </nav>
+  <main>
+    <details class="schema-box">
+      <summary>Table definition (from data/schema.sql)</summary>
+      <pre id="schema"></pre>
+    </details>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search every column…" aria-label="Search">
+      <button id="clear-filter" type="button" hidden>Clear filter</button>
+      <span id="status"></span>
+      <span class="spacer"></span>
+      <button id="prev" type="button">‹ Prev 100</button>
+      <button id="next" type="button">Next 100 ›</button>
+    </div>
+    <div class="grid-wrap"><table id="grid"></table></div>
+    <details class="sql-box" open>
+      <summary>SQL for this view</summary>
+      <pre id="sql"></pre>
+    </details>
+  </main>
+</div>
+<script type="module" src="browser.js"></script>
+</body>
+</html>

@@ -172,6 +172,11 @@ local-ai-data-lab/
 │       ├── registry.ts
 │       └── definitions/    one file per tool (§5.3)
 │
+├── data-browser/          READ-ONLY DATA BROWSER, for people (port 3202)
+│   ├── server.ts           every table and row; separate process — the app
+│   │                       and the model never touch it
+│   └── public/             browser.ts, index.html, browser.css
+│
 ├── public/
 │   ├── index.html          three-pane layout (§7)
 │   ├── app.ts              wiring; nothing imports it
@@ -223,6 +228,7 @@ it is itself running from `dist/`; say so in a comment.
 | `npm run check-env` | Node, Ollama, model, DB — each reported separately |
 | `npm run seed` | Rebuild `data/checkpoint.db` from scratch |
 | `npm run data-server:http` | Data MCP server over HTTP on 3201, for MCP Inspector |
+| `npm run data:browse` | Read-only data browser on 3202: every table and row, sortable, searchable, foreign keys clickable, with the schema comments and the SQL behind each view. For people; separate from the app and the model |
 | `npm run try-tools` | Call every tool directly, including error paths |
 | `npm run try-model` | One raw Ollama request/response, printed in full |
 | `npm run ask -- "…"` | Full agent loop in the terminal; `--no-prompt`, `--no-format`, `--no-gate`, `--model` |
@@ -573,6 +579,8 @@ each with a comment:
   status=shipped").
 - **Screen history strip**: every screen shown this turn, clickable, so
   a two-call turn (find customer → list orders) can be stepped through.
+  Each entry has a × to close it, and "Close all" returns to the empty
+  screen (added after use: click-through piles views up quickly).
 - Clicking an order number in a table opens that order **without the
   model** — it calls `POST /api/tools/get_order` directly. Label it as
   such in the log (`actor: user`). This makes the point that the tools

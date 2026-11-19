@@ -36,6 +36,8 @@ dist/
 # `npm run build:client`.
 public/**/*.js
 public/**/*.js.map
+data-browser/public/*.js
+data-browser/public/*.js.map
 
 # shared/ holds types only, so it compiles to an empty module — but the
 # client build still emits one next to the source, same as public/.

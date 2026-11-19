@@ -337,18 +337,43 @@ select {
 .screen-caller.user { color: var(--accent); }
 
 #screen-strip { display: flex; gap: 2px; padding: 0.3rem 0.8rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+#screen-strip { align-items: center; }
 .strip-item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  padding: 0.1rem 0.5rem;
   border: 1px solid var(--border);
   background: var(--surface-sunk);
-  cursor: pointer;
 }
-.strip-item + .strip-item::before { content: "› "; color: var(--fg-faint); }
+.strip-item + .strip-item::before { content: "›"; color: var(--fg-faint); padding-left: 0.4rem; }
+.strip-open { border: 0; background: none; padding: 0.1rem 0.3rem 0.1rem 0.5rem; cursor: pointer; font: inherit; color: inherit; }
+.strip-close {
+  border: 0;
+  background: none;
+  padding: 0 0.4rem 0 0.15rem;
+  cursor: pointer;
+  color: var(--fg-faint);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.strip-close:hover { color: var(--level-error); }
 .strip-item.current { background: var(--surface); border-color: var(--level-tool); color: var(--level-tool); }
 .strip-item.error { color: var(--level-error); }
-.strip-item.by-user { font-style: italic; }
+.strip-item.by-user .strip-open { font-style: italic; }
+.strip-close-all {
+  flex: none;
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  padding: 0.05rem 0.5rem;
+  cursor: pointer;
+  color: var(--fg-dim);
+}
+.strip-close-all:hover { border-color: var(--level-error); color: var(--level-error); }
 
 #screen-body { flex: 1; overflow: auto; padding: 0.7rem 0.9rem; font-size: 0.82rem; }
 .screen-placeholder { color: var(--fg); max-width: 32rem; margin: 1.5rem auto; text-align: center; }

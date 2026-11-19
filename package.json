@@ -14,6 +14,7 @@
     "check-env": "tsx scripts/check-env.ts",
     "seed": "tsx scripts/seed.ts",
     "data-server:http": "tsx data-server/http.ts",
+    "data:browse": "tsc -p tsconfig.client.json && tsx data-browser/server.ts",
     "try-tools": "tsx scripts/try-tools.ts",
     "try-model": "tsx scripts/try-model.ts",
     "ask": "tsx scripts/ask.ts",

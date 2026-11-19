@@ -50,7 +50,7 @@ const SKIP = new Set(["node_modules", "dist", ".git", ".claude"]);
  * a different process, spawned by the app. It is easy to forget for
  * exactly that reason.
  */
-const AUDITED = ["server", "data-server", "public", "scripts", "shared"];
+const AUDITED = ["server", "data-server", "data-browser", "public", "scripts", "shared"];
 
 /**
  * How many characters of comment count as an explanation.

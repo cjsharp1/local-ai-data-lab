@@ -42,8 +42,10 @@
     "rootDir": "."
   },
 
-  // Only the UI. The server files are compiled by the root config.
-  "include": ["public/**/*.ts", "shared/**/*.ts"],
+  // Only browser code: the app's UI, and the data browser's page
+  // (data-browser/public/, served by its own server — see its header).
+  // The server files are compiled by the root config.
+  "include": ["public/**/*.ts", "data-browser/public/**/*.ts", "shared/**/*.ts"],
 
   // tsc excludes its own outDir automatically, to avoid recompiling what it
   // just emitted. Here outDir IS the source folder, so that automatic rule

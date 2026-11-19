@@ -19,7 +19,9 @@
  *            the exact text summary the MODEL was given
  *
  * The strip resets when a new question starts. Screens opened by clicking
- * are added to it too, marked as yours.
+ * are added to it too, marked as yours. Each entry has a × to close it,
+ * and "Close all" clears the strip back to the empty screen — clicking
+ * through customers, orders and products piles up views quickly.
  */
 
 import { byId, el } from "../dom.js";
@@ -77,17 +79,53 @@ function describeArgs(args: Record<string, unknown>): string {
 
 function renderStrip(): void {
   const strip = byId("screen-strip");
-  strip.replaceChildren(...history.map((s, i) => {
-    const button = el("button", {
-      class: `strip-item${i === current ? " current" : ""}${s.isError ? " error" : ""}${s.calledBy === "user" ? " by-user" : ""}`,
-      text: SHORT[s.tool] ?? s.tool,
+  const items = history.map((s, i) => {
+    const label = SHORT[s.tool] ?? s.tool;
+    const open = el("button", {
+      class: "strip-open",
+      text: label,
       title: `${s.tool} · ${describeArgs(s.args)}${s.calledBy === "user" ? " · opened by you" : ""}`,
       attrs: { type: "button" },
     });
-    button.addEventListener("click", () => select(i));
-    return button;
-  }));
+    open.addEventListener("click", () => select(i));
+
+    // A separate button, not a click target inside the label, so it is
+    // reachable by keyboard and announced as its own action.
+    const close = el("button", {
+      class: "strip-close",
+      text: "×",
+      title: `Close ${label}`,
+      attrs: { type: "button", "aria-label": `Close ${label}` },
+    });
+    close.addEventListener("click", () => closeScreen(i));
+
+    return el("span", {
+      class: `strip-item${i === current ? " current" : ""}${s.isError ? " error" : ""}${s.calledBy === "user" ? " by-user" : ""}`,
+    }, [open, close]);
+  });
+
+  const closeAll = el("button", { class: "strip-close-all", text: "Close all", attrs: { type: "button" } });
+  closeAll.addEventListener("click", showEmpty);
+
+  strip.replaceChildren(...items, ...(history.length > 1 ? [closeAll] : []));
   strip.hidden = history.length === 0;
+}
+
+/**
+ * Closes one view. If it was the one showing, the neighbour to its left
+ * takes its place (or the one to its right, if it was first) — the same
+ * rule browser tabs follow. Closing the last one returns to the empty
+ * screen.
+ */
+function closeScreen(index: number): void {
+  history.splice(index, 1);
+  if (history.length === 0) {
+    showEmpty();
+    return;
+  }
+  if (index < current) current -= 1;                           // shifted left by one
+  else if (index === current) current = Math.max(0, index - 1); // its left neighbour
+  select(current);
 }
 
 function select(index: number): void {

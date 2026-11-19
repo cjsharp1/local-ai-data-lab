@@ -100,6 +100,7 @@
   "include": [
     "server/**/*.ts",
     "data-server/**/*.ts",
+    "data-browser/*.ts",
     "scripts/**/*.ts",
     "shared/**/*.ts"
   ]
